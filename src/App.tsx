@@ -1,14 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GanttChart } from './components/GanttChart';
+import { TaskForm } from './components/TaskForm/TaskForm';
+import { Modal } from './components/Modal/Modal';
 import { useStrategyStore } from './store/useStrategyStore';
 import { useCurrentStrategy } from './hooks/useCurrentStrategy';
-import { TaskType, TaskStatus } from './types';
+import { Task, TaskType, TaskStatus } from './types';
 import { addDays } from 'date-fns';
+import { FaPlus } from 'react-icons/fa';
 import './App.css';
 
 function App() {
-  const { createStrategy, createTask } = useStrategyStore();
+  const { createStrategy, createTask, updateTask } = useStrategyStore();
   const { strategy, tasks } = useCurrentStrategy();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   
   // Initialize with demo data
   useEffect(() => {
@@ -87,6 +92,26 @@ function App() {
     }
   }, [strategy, tasks, createTask]);
   
+  const handleTaskSubmit = (taskData: Omit<Task, 'id'>) => {
+    if (editingTask) {
+      updateTask(editingTask.id, taskData);
+    } else {
+      createTask(taskData);
+    }
+    setIsModalOpen(false);
+    setEditingTask(undefined);
+  };
+  
+  const handleTaskClick = (task: Task) => {
+    setEditingTask(task);
+    setIsModalOpen(true);
+  };
+  
+  const handleNewTask = () => {
+    setEditingTask(undefined);
+    setIsModalOpen(true);
+  };
+  
   if (!strategy) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -99,17 +124,44 @@ function App() {
       </header>
       
       <main className="container mx-auto p-4">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">Strategy Timeline</h2>
-          <p className="text-gray-600">{strategy.description}</p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Strategy Timeline</h2>
+            <p className="text-gray-600">{strategy.description}</p>
+          </div>
+          <button
+            onClick={handleNewTask}
+            className="flex items-center gap-2 px-4 py-2 bg-cod-accent text-white rounded-md hover:bg-cod-accent/90 transition-colors"
+          >
+            <FaPlus /> Add Task
+          </button>
         </div>
         
         <GanttChart
           tasks={tasks}
           startDate={strategy.startDate}
           endDate={strategy.endDate}
-          onTaskClick={(task) => console.log('Task clicked:', task)}
+          onTaskClick={handleTaskClick}
         />
+        
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingTask(undefined);
+          }}
+          title={editingTask ? 'Edit Task' : 'Create New Task'}
+        >
+          <TaskForm
+            task={editingTask}
+            strategyId={strategy.id}
+            onSubmit={handleTaskSubmit}
+            onCancel={() => {
+              setIsModalOpen(false);
+              setEditingTask(undefined);
+            }}
+          />
+        </Modal>
       </main>
     </div>
   );
