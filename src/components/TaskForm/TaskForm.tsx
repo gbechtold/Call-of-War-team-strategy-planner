@@ -57,33 +57,33 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Task Name</label>
+        <label className="block text-sm font-bebas text-cod-accent mb-1">Task Name</label>
         <input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-cod-accent focus:ring-cod-accent sm:text-sm"
+          className="mt-1 block w-full"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Description</label>
+        <label className="block text-sm font-bebas text-cod-accent mb-1">Description</label>
         <textarea
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-cod-accent focus:ring-cod-accent sm:text-sm"
+          className="mt-1 block w-full"
           rows={3}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Task Type</label>
+          <label className="block text-sm font-bebas text-cod-accent mb-1">Task Type</label>
           <select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as TaskType })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-cod-accent focus:ring-cod-accent sm:text-sm"
+            className="mt-1 block w-full"
           >
             <option value={TaskType.UNIT_PRODUCTION}>Unit Production</option>
             <option value={TaskType.RESEARCH}>Research</option>
@@ -97,11 +97,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Status</label>
+          <label className="block text-sm font-bebas text-cod-accent mb-1">Status</label>
           <select
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-cod-accent focus:ring-cod-accent sm:text-sm"
+            className="mt-1 block w-full"
           >
             <option value={TaskStatus.PENDING}>Pending</option>
             <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
@@ -113,35 +113,35 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Start Date</label>
+          <label className="block text-sm font-bebas text-cod-accent mb-1">Start Date</label>
           <input
             type="date"
             value={formData.startDate}
             onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-cod-accent focus:ring-cod-accent sm:text-sm"
+            className="mt-1 block w-full"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">End Date</label>
+          <label className="block text-sm font-bebas text-cod-accent mb-1">End Date</label>
           <input
             type="date"
             value={formData.endDate}
             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
             min={formData.startDate}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-cod-accent focus:ring-cod-accent sm:text-sm"
+            className="mt-1 block w-full"
             required
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Priority</label>
+        <label className="block text-sm font-bebas text-cod-accent mb-1">Priority</label>
         <select
           value={formData.priority}
           onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-cod-accent focus:ring-cod-accent sm:text-sm"
+          className="mt-1 block w-full"
         >
           <option value={1}>High</option>
           <option value={2}>Medium</option>
@@ -149,17 +149,17 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
         </select>
       </div>
 
-      <div className="flex justify-end space-x-3">
+      <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cod-accent"
+          className="px-4 py-2 border-2 border-cod-accent/50 rounded-md text-sm font-bebas text-cod-accent bg-transparent hover:bg-cod-accent/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cod-accent transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-cod-accent hover:bg-cod-accent/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cod-accent"
+          className="px-4 py-2 border-2 border-transparent rounded-md text-sm font-bebas text-cod-primary bg-cod-accent hover:bg-cod-accent/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cod-accent transition-colors"
         >
           {task ? 'Update Task' : 'Create Task'}
         </button>

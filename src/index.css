@@ -8,12 +8,45 @@
   input[type="date"],
   select,
   textarea {
-    @apply border px-3 py-2 rounded-md;
+    @apply border px-3 py-2 rounded-md bg-cod-secondary border-cod-accent/30 text-gray-100 focus:border-cod-accent focus:ring-1 focus:ring-cod-accent;
   }
 }
 
 @layer base {
   body {
-    @apply bg-gray-100 dark:bg-cod-secondary text-gray-900 dark:text-gray-100;
+    @apply bg-cod-secondary text-gray-100;
+    background-image: 
+      radial-gradient(at 40% 20%, rgba(212, 175, 55, 0.1) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(33, 33, 33, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(212, 175, 55, 0.05) 0px, transparent 50%);
+  }
+}
+
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-cod-secondary;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-cod-accent/50 rounded-full hover:bg-cod-accent/70;
   }
 }

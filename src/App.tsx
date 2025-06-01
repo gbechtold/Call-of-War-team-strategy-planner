@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
+import { DndContext } from '@dnd-kit/core';
 import { GanttChart } from './components/GanttChart';
 import { TaskForm } from './components/TaskForm/TaskForm';
 import { Modal } from './components/Modal/Modal';
+import { UnitMenu } from './components/UnitMenu/UnitMenu';
 import { useStrategyStore } from './store/useStrategyStore';
 import { useCurrentStrategy } from './hooks/useCurrentStrategy';
-import { type Task, TaskType, TaskStatus } from './types';
+import { type Task, type Unit, TaskType, TaskStatus } from './types';
 import { addDays } from 'date-fns';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaBars } from 'react-icons/fa';
+import { getUnitBuildDuration } from './data/units';
 import './App.css';
 
 function App() {
@@ -14,11 +17,11 @@ function App() {
   const { strategy, tasks } = useCurrentStrategy();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  const [showUnitMenu, setShowUnitMenu] = useState(true);
   
   // Initialize with demo data
   useEffect(() => {
     if (!strategy) {
-      // Create a demo strategy
       createStrategy({
         name: 'Operation Thunder Strike',
         description: 'Coordinated offensive against eastern territories',
@@ -59,32 +62,6 @@ function App() {
           assignedPlayers: [],
           dependencies: [],
           priority: 2
-        },
-        {
-          name: 'Move to Eastern Border',
-          description: 'Position troops for offensive',
-          type: TaskType.MOVEMENT,
-          status: TaskStatus.PENDING,
-          category: 'Movement',
-          startDate: addDays(new Date(), 4),
-          endDate: addDays(new Date(), 6),
-          strategyId: strategy.id,
-          assignedPlayers: [],
-          dependencies: [],
-          priority: 2
-        },
-        {
-          name: 'Attack Enemy Base',
-          description: 'Launch coordinated assault',
-          type: TaskType.ATTACK,
-          status: TaskStatus.PENDING,
-          category: 'Combat',
-          startDate: addDays(new Date(), 7),
-          endDate: addDays(new Date(), 9),
-          strategyId: strategy.id,
-          assignedPlayers: [],
-          dependencies: [],
-          priority: 1
         }
       ];
       
@@ -116,38 +93,79 @@ function App() {
     updateTask(taskId, { startDate: newStartDate, endDate: newEndDate });
   };
   
+  const handleUnitDrop = (unit: Unit, dropDate: Date) => {
+    const buildDuration = getUnitBuildDuration(unit);
+    createTask({
+      name: `Build ${unit.name}`,
+      description: `Production time: ${unit.buildTime} hours`,
+      type: TaskType.UNIT_PRODUCTION,
+      status: TaskStatus.PENDING,
+      category: 'Unit Production',
+      startDate: dropDate,
+      endDate: addDays(dropDate, buildDuration),
+      strategyId: strategy!.id,
+      assignedPlayers: [],
+      dependencies: [],
+      priority: 2,
+      unitId: unit.id
+    });
+  };
+  
   if (!strategy) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen bg-cod-secondary">
+      <div className="text-cod-accent font-bebas text-3xl animate-pulse">Loading Strategy...</div>
+    </div>;
   }
   
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-cod-primary text-white p-4 shadow-lg">
-        <h1 className="text-3xl font-bold font-bebas">Call of War Strategy Planner</h1>
-        <p className="text-cod-accent">{strategy.name}</p>
-      </header>
-      
-      <main className="container mx-auto p-4">
-        <div className="mb-6 flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Strategy Timeline</h2>
-            <p className="text-gray-600">{strategy.description}</p>
+    <DndContext>
+      <div className="min-h-screen bg-cod-secondary">
+        <header className="bg-cod-primary text-white p-4 shadow-2xl border-b-4 border-cod-accent">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bebas text-cod-accent tracking-wider">Call of War Strategy Planner</h1>
+              <p className="text-gray-300">{strategy.name}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowUnitMenu(!showUnitMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-cod-secondary border-2 border-cod-accent text-cod-accent rounded-md hover:bg-cod-accent hover:text-cod-primary transition-all font-bebas"
+              >
+                <FaBars /> Units Menu
+              </button>
+              <button
+                onClick={handleNewTask}
+                className="flex items-center gap-2 px-4 py-2 bg-cod-accent text-cod-primary rounded-md hover:bg-cod-accent/90 transition-all font-bebas text-lg"
+              >
+                <FaPlus /> Add Task
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleNewTask}
-            className="flex items-center gap-2 px-4 py-2 bg-cod-accent text-white rounded-md hover:bg-cod-accent/90 transition-colors"
-          >
-            <FaPlus /> Add Task
-          </button>
-        </div>
+        </header>
         
-        <GanttChart
-          tasks={tasks}
-          startDate={strategy.startDate}
-          endDate={strategy.endDate}
-          onTaskClick={handleTaskClick}
-          onTaskMove={handleTaskMove}
-        />
+        <main className="container mx-auto p-4 flex gap-6">
+          {showUnitMenu && (
+            <div className="animate-fadeIn">
+              <UnitMenu />
+            </div>
+          )}
+          
+          <div className="flex-1">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bebas text-cod-accent mb-2">Strategy Timeline</h2>
+              <p className="text-gray-400">{strategy.description}</p>
+            </div>
+            
+            <GanttChart
+              tasks={tasks}
+              startDate={strategy.startDate}
+              endDate={strategy.endDate}
+              onTaskClick={handleTaskClick}
+              onTaskMove={handleTaskMove}
+              onUnitDrop={handleUnitDrop}
+            />
+          </div>
+        </main>
         
         <Modal
           isOpen={isModalOpen}
@@ -167,8 +185,8 @@ function App() {
             }}
           />
         </Modal>
-      </main>
-    </div>
+      </div>
+    </DndContext>
   );
 }
 

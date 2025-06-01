@@ -1,6 +1,6 @@
 import React from 'react';
-import { DndContext, type DragEndEvent, DragOverlay, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { type Task } from '../../types';
+import { DndContext, type DragEndEvent, DragOverlay, MouseSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
+import { type Task, type Unit } from '../../types';
 import { format, startOfWeek, addDays, differenceInDays, isWithinInterval } from 'date-fns';
 import { DraggableTaskBar } from './DraggableTaskBar';
 import { TaskBar } from './TaskBar';
@@ -11,16 +11,40 @@ interface GanttChartProps {
   endDate: Date;
   onTaskClick?: (task: Task) => void;
   onTaskMove?: (taskId: string, newStartDate: Date, newEndDate: Date) => void;
+  onUnitDrop?: (unit: Unit, dropDate: Date) => void;
 }
+
+interface DroppableTimelineProps {
+  date: Date;
+  children: React.ReactNode;
+}
+
+const DroppableTimeline: React.FC<DroppableTimelineProps> = ({ date, children }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `timeline-${date.toISOString()}`,
+    data: { date }
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`h-full ${isOver ? 'bg-cod-accent/20' : ''}`}
+    >
+      {children}
+    </div>
+  );
+};
 
 export const GanttChart: React.FC<GanttChartProps> = ({ 
   tasks, 
   startDate, 
   endDate,
   onTaskClick,
-  onTaskMove
+  onTaskMove,
+  onUnitDrop
 }) => {
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [draggedUnit, setDraggedUnit] = React.useState<Unit | null>(null);
   const totalDays = differenceInDays(endDate, startDate) + 1;
   const weeks = Math.ceil(totalDays / 7);
   
@@ -32,11 +56,31 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     })
   );
   
+  const handleDragStart = (event: any) => {
+    const { active } = event;
+    if (active.data.current?.type === 'unit') {
+      setDraggedUnit(active.data.current.unit || null);
+    } else {
+      setActiveId(active.id as string);
+    }
+  };
+  
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, delta } = event;
+    const { active, delta, over } = event;
     
+    // Handle unit drop
+    if (active.data.current?.type === 'unit' && over?.data.current?.date) {
+      const unit = active.data.current.unit;
+      const dropDate = over.data.current.date;
+      onUnitDrop?.(unit, dropDate);
+      setDraggedUnit(null);
+      return;
+    }
+    
+    // Handle task move
     if (!active || !delta || !onTaskMove) {
       setActiveId(null);
+      setDraggedUnit(null);
       return;
     }
     
@@ -59,6 +103,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     }
     
     setActiveId(null);
+    setDraggedUnit(null);
   };
   
   const renderTimelineHeader = () => {
@@ -82,7 +127,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       if (weekDates.length > 0) {
         headers.push(
           <div key={week} className="flex flex-col">
-            <div className="text-center font-bold p-2 border-b border-gray-300">
+            <div className="text-center font-bold p-2 border-b border-gray-300 bg-cod-primary text-cod-accent">
               Week {week + 1} - {format(addDays(weekStart, week * 7), 'MMM yyyy')}
             </div>
             <div className="flex">
@@ -119,23 +164,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   
   const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
   
+  // Create timeline days for drop zones
+  const timelineDays: Date[] = [];
+  for (let i = 0; i < totalDays; i++) {
+    timelineDays.push(addDays(startDate, i));
+  }
+  
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={(event) => setActiveId(event.active.id as string)}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-cod-secondary rounded-lg shadow-2xl overflow-hidden border-2 border-cod-accent/20">
         <div className="flex">
-          <div className="w-48 bg-gray-100">
-            <div className="h-24 border-b border-gray-300 p-2 font-bold flex items-end">
+          <div className="w-48 bg-cod-primary">
+            <div className="h-24 border-b border-cod-accent/30 p-2 font-bebas text-cod-accent flex items-end text-xl">
               Task Categories
             </div>
             {Object.keys(groupedTasks).map(category => (
-              <div key={category} className="border-b border-gray-300">
-                <div className="h-8 p-2 font-semibold bg-gray-200">{category}</div>
+              <div key={category} className="border-b border-cod-accent/30">
+                <div className="h-8 p-2 font-bebas bg-cod-primary/80 text-cod-accent">{category}</div>
                 {groupedTasks[category].map(task => (
-                  <div key={task.id} className="h-12 border-b border-gray-200 px-2 py-1 text-sm truncate flex items-center">
+                  <div key={task.id} className="h-12 border-b border-cod-accent/20 px-2 py-1 text-sm truncate flex items-center text-gray-300 hover:bg-cod-primary/50 transition-colors">
                     {task.name}
                   </div>
                 ))}
@@ -145,17 +196,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({
           
           <div className="flex-1 overflow-x-auto">
             <div className="min-w-[800px]">
-              <div className="h-24 border-b border-gray-300 flex">
+              <div className="h-24 border-b border-cod-accent/30 flex">
                 {renderTimelineHeader()}
               </div>
               
               {Object.keys(groupedTasks).map(category => (
-                <div key={category} className="border-b border-gray-300">
-                  <div className="h-8 bg-gray-200"></div>
+                <div key={category} className="border-b border-cod-accent/30">
+                  <div className="h-8 bg-cod-primary/60"></div>
                   {groupedTasks[category].map(task => {
                     const position = calculateTaskPosition(task);
                     return (
-                      <div key={task.id} className="h-12 border-b border-gray-200 relative">
+                      <div key={task.id} className="h-12 border-b border-cod-accent/20 relative">
+                        <div className="absolute inset-0 flex">
+                          {timelineDays.map((day, index) => (
+                            <DroppableTimeline key={index} date={day}>
+                              <div className="w-full h-full border-r border-cod-accent/10" />
+                            </DroppableTimeline>
+                          ))}
+                        </div>
                         {onTaskMove ? (
                           <DraggableTaskBar
                             task={task}
@@ -185,6 +243,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         {activeTask && (
           <div className="bg-gray-700 text-white px-3 py-1 rounded shadow-lg">
             {activeTask.name}
+          </div>
+        )}
+        {draggedUnit && (
+          <div className="bg-cod-primary text-cod-accent px-4 py-2 rounded shadow-lg border-2 border-cod-accent animate-pulse">
+            <div className="text-2xl text-center">{draggedUnit.icon}</div>
+            <div className="text-sm font-bebas">{draggedUnit.name}</div>
           </div>
         )}
       </DragOverlay>
