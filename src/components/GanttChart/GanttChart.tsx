@@ -128,14 +128,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="flex">
           <div className="w-48 bg-gray-100">
-            <div className="h-24 border-b border-gray-300 p-2 font-bold">
+            <div className="h-24 border-b border-gray-300 p-2 font-bold flex items-end">
               Task Categories
             </div>
             {Object.keys(groupedTasks).map(category => (
               <div key={category} className="border-b border-gray-300">
-                <div className="p-2 font-semibold bg-gray-200">{category}</div>
+                <div className="h-8 p-2 font-semibold bg-gray-200">{category}</div>
                 {groupedTasks[category].map(task => (
-                  <div key={task.id} className="h-12 border-b border-gray-200 px-2 py-1 text-sm truncate">
+                  <div key={task.id} className="h-12 border-b border-gray-200 px-2 py-1 text-sm truncate flex items-center">
                     {task.name}
                   </div>
                 ))}
