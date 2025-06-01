@@ -124,19 +124,19 @@ export const StrategySharing: React.FC = () => {
   }, [createStrategy]);
 
   return (
-    <div className="bg-cod-secondary/90 backdrop-blur-sm p-4 rounded-lg shadow-2xl border-2 border-cod-accent/20">
-      <h2 className="text-2xl font-bebas text-cod-accent mb-4 flex items-center gap-2">
-        <FaShare /> Strategy Sharing
+    <div className="bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20 w-56">
+      <h2 className="text-lg font-bebas text-cod-accent mb-3 flex items-center gap-2">
+        <FaShare /> Share
       </h2>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Share Strategy */}
-        <div className="p-4 bg-cod-primary/30 rounded-lg border border-cod-accent/20">
-          <h3 className="font-bebas text-cod-accent mb-2 flex items-center gap-2">
-            <FaGlobe /> Share Current Strategy
+        <div className="p-2 bg-cod-primary/30 rounded border border-cod-accent/20">
+          <h3 className="font-bebas text-cod-accent mb-1 flex items-center gap-1 text-sm">
+            <FaGlobe /> Share Link
           </h3>
-          <p className="text-sm text-gray-400 mb-3">
-            Generate a shareable link for your alliance members
+          <p className="text-xs text-gray-400 mb-2">
+            Generate link for alliance
           </p>
           
           {!shareUrl ? (

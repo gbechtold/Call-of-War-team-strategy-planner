@@ -16,7 +16,8 @@ const DraggableUnit: React.FC<DraggableUnitProps> = ({ unit }) => {
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 1000 : 1,
   } : undefined;
 
   return (
@@ -25,11 +26,11 @@ const DraggableUnit: React.FC<DraggableUnitProps> = ({ unit }) => {
       style={style}
       {...listeners}
       {...attributes}
-      className="p-3 bg-cod-secondary border-2 border-cod-accent/30 rounded-lg cursor-move hover:border-cod-accent hover:bg-cod-primary transition-all transform hover:scale-105 hover:shadow-lg"
+      className="p-2 bg-cod-secondary border-2 border-cod-accent/30 rounded cursor-move hover:border-cod-accent hover:bg-cod-primary transition-all transform hover:scale-105 hover:shadow-lg touch-none select-none"
     >
-      <div className="text-2xl text-center mb-1">{unit.icon}</div>
-      <div className="text-xs text-center text-cod-accent font-bebas">{unit.name}</div>
-      <div className="text-xs text-center text-gray-400">{unit.buildTime}h</div>
+      <div className="text-lg text-center mb-1">{unit.icon}</div>
+      <div className="text-[10px] text-center text-cod-accent font-bebas leading-tight">{unit.name}</div>
+      <div className="text-[8px] text-center text-gray-400">{unit.buildTime}h</div>
     </div>
   );
 };
@@ -44,13 +45,13 @@ interface UnitCategoryProps {
 
 const UnitCategory: React.FC<UnitCategoryProps> = ({ title, units, isOpen, onToggle }) => {
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-3 bg-cod-primary hover:bg-cod-primary/80 rounded-lg transition-colors"
+        className="w-full flex items-center justify-between p-2 bg-cod-primary hover:bg-cod-primary/80 rounded transition-colors"
       >
-        <span className="font-bebas text-lg text-cod-accent">{title}</span>
-        {isOpen ? <FaChevronDown className="text-cod-accent" /> : <FaChevronRight className="text-cod-accent" />}
+        <span className="font-bebas text-sm text-cod-accent">{title}</span>
+        {isOpen ? <FaChevronDown className="text-cod-accent text-xs" /> : <FaChevronRight className="text-cod-accent text-xs" />}
       </button>
       
       {isOpen && (
@@ -79,19 +80,19 @@ export const UnitMenu: React.FC = () => {
   };
 
   const categories = [
-    { type: UnitType.INFANTRY, title: 'Infantry Units', units: getUnitsByType(UnitType.INFANTRY) },
-    { type: UnitType.ARMOR, title: 'Armored Units', units: getUnitsByType(UnitType.ARMOR) },
-    { type: UnitType.ARTILLERY, title: 'Artillery Units', units: getUnitsByType(UnitType.ARTILLERY) },
+    { type: UnitType.INFANTRY, title: 'Infantry', units: getUnitsByType(UnitType.INFANTRY) },
+    { type: UnitType.ARMOR, title: 'Armor', units: getUnitsByType(UnitType.ARMOR) },
+    { type: UnitType.ARTILLERY, title: 'Artillery', units: getUnitsByType(UnitType.ARTILLERY) },
     { type: UnitType.AIR_FORCE, title: 'Air Force', units: getUnitsByType(UnitType.AIR_FORCE) },
-    { type: UnitType.NAVY, title: 'Naval Units', units: getUnitsByType(UnitType.NAVY) },
+    { type: UnitType.NAVY, title: 'Navy', units: getUnitsByType(UnitType.NAVY) },
   ];
 
   return (
-    <div className="w-64 bg-cod-secondary/90 backdrop-blur-sm p-4 rounded-lg shadow-2xl border-2 border-cod-accent/20">
-      <h2 className="text-2xl font-bebas text-cod-accent mb-4 text-center">Unit Production</h2>
-      <div className="text-xs text-gray-400 mb-4 text-center">Drag units to timeline</div>
+    <div className="w-56 bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20">
+      <h2 className="text-lg font-bebas text-cod-accent mb-2 text-center">Unit Production</h2>
+      <div className="text-xs text-gray-400 mb-3 text-center">Drag to timeline</div>
       
-      <div className="max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
         {categories.map(({ type, title, units }) => (
           <UnitCategory
             key={type}

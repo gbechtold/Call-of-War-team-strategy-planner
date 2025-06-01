@@ -11,7 +11,9 @@ interface TaskFormProps {
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, onCancel }) => {
-  const { players } = useStrategyStore();
+  const { players, tasks } = useStrategyStore();
+  const availableTasks = tasks.filter(t => t.strategyId === strategyId && t.id !== task?.id);
+  
   const [formData, setFormData] = useState({
     name: task?.name || '',
     description: task?.description || '',
@@ -22,6 +24,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
     endDate: task ? format(new Date(task.endDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     priority: task?.priority || 1,
     assignedPlayers: task?.assignedPlayers || [],
+    dependencies: task?.dependencies || [],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,7 +35,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
       endDate: new Date(formData.endDate),
       strategyId,
       assignedPlayers: formData.assignedPlayers,
-      dependencies: task?.dependencies || [],
+      dependencies: formData.dependencies,
     });
   };
 
@@ -181,6 +184,38 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
                   style={{ backgroundColor: player.color }}
                 />
                 <span className="text-sm text-gray-300">{player.name} ({player.nation})</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {availableTasks.length > 0 && (
+        <div>
+          <label className="block text-sm font-bebas text-cod-accent mb-2">Task Dependencies</label>
+          <p className="text-xs text-gray-400 mb-2">Select tasks that must complete before this task can start</p>
+          <div className="space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
+            {availableTasks.map((availableTask) => (
+              <label key={availableTask.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.dependencies.includes(availableTask.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({
+                        ...formData,
+                        dependencies: [...formData.dependencies, availableTask.id]
+                      });
+                    } else {
+                      setFormData({
+                        ...formData,
+                        dependencies: formData.dependencies.filter(id => id !== availableTask.id)
+                      });
+                    }
+                  }}
+                  className="rounded border-cod-accent/30 text-cod-accent focus:ring-cod-accent"
+                />
+                <span className="text-xs text-gray-300">{availableTask.name}</span>
               </label>
             ))}
           </div>

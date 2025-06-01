@@ -162,19 +162,19 @@ export const PlayerManager: React.FC = () => {
   };
 
   return (
-    <div className="bg-cod-secondary/90 backdrop-blur-sm p-4 rounded-lg shadow-2xl border-2 border-cod-accent/20">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bebas text-cod-accent">Alliance Members</h2>
+    <div className="bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20 w-56">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bebas text-cod-accent">Alliance</h2>
         <button
           onClick={handleAddPlayer}
-          className="flex items-center gap-2 px-3 py-1 bg-cod-accent text-cod-primary rounded-md hover:bg-cod-accent/90 transition-colors font-bebas text-sm"
+          className="flex items-center gap-1 px-2 py-1 bg-cod-accent text-cod-primary rounded text-xs hover:bg-cod-accent/90 transition-colors font-bebas"
         >
-          <FaPlus /> Add Player
+          <FaPlus /> Add
         </button>
       </div>
 
       {showForm && (
-        <div className="mb-4 p-4 bg-cod-primary/50 rounded-lg border border-cod-accent/30">
+        <div className="mb-3 p-3 bg-cod-primary/50 rounded border border-cod-accent/30">
           <PlayerForm
             player={editingPlayer}
             onSubmit={handleSubmit}
@@ -183,18 +183,18 @@ export const PlayerManager: React.FC = () => {
         </div>
       )}
 
-      <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+      <div className="space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
         {players.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
-            <FaUser className="mx-auto text-4xl mb-2 opacity-50" />
-            <p className="font-bebas">No alliance members yet</p>
-            <p className="text-sm">Add players to start coordinating strategies</p>
+          <div className="text-center text-gray-400 py-4">
+            <FaUser className="mx-auto text-2xl mb-1 opacity-50" />
+            <p className="font-bebas text-sm">No members</p>
+            <p className="text-xs">Add players to coordinate</p>
           </div>
         ) : (
           players.map((player) => (
             <div
               key={player.id}
-              className="flex items-center justify-between p-3 bg-cod-primary/30 rounded-lg border border-cod-accent/20 hover:bg-cod-primary/50 transition-colors"
+              className="flex items-center justify-between p-2 bg-cod-primary/30 rounded border border-cod-accent/20 hover:bg-cod-primary/50 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div

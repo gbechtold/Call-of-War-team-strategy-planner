@@ -124,11 +124,11 @@ function App() {
   return (
     <DndContext>
       <div className="min-h-screen bg-cod-secondary">
-        <header className="bg-cod-primary text-white p-4 shadow-2xl border-b-4 border-cod-accent">
+        <header className="bg-cod-primary text-white p-3 shadow-2xl border-b-4 border-cod-accent">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bebas text-cod-accent tracking-wider">Call of War Strategy Planner</h1>
-              <p className="text-gray-300">{strategy.name}</p>
+              <h1 className="text-2xl font-bebas text-cod-accent tracking-wider">Call of War Strategy Planner</h1>
+              <p className="text-gray-300 text-sm">{strategy.name}</p>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -159,8 +159,8 @@ function App() {
           </div>
         </header>
         
-        <main className="container mx-auto p-4 flex gap-4">
-          <div className="flex flex-col gap-4">
+        <main className="container mx-auto p-3 flex gap-3">
+          <div className="flex flex-col gap-3">
             {showUnitMenu && (
               <div className="animate-fadeIn">
                 <UnitMenu />
@@ -181,9 +181,9 @@ function App() {
           </div>
           
           <div className="flex-1">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bebas text-cod-accent mb-2">Strategy Timeline</h2>
-              <p className="text-gray-400">{strategy.description}</p>
+            <div className="mb-3">
+              <h2 className="text-xl font-bebas text-cod-accent mb-1">Strategy Timeline</h2>
+              <p className="text-gray-400 text-sm">{strategy.description}</p>
             </div>
             
             <GanttChart
