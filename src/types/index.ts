@@ -7,14 +7,16 @@ export interface Unit {
   icon?: string;
 }
 
-export enum UnitType {
-  INFANTRY = 'INFANTRY',
-  ARMOR = 'ARMOR',
-  ARTILLERY = 'ARTILLERY',
-  AIR_FORCE = 'AIR_FORCE',
-  NAVY = 'NAVY',
-  SUPPORT = 'SUPPORT'
-}
+export const UnitType = {
+  INFANTRY: 'INFANTRY',
+  ARMOR: 'ARMOR',
+  ARTILLERY: 'ARTILLERY',
+  AIR_FORCE: 'AIR_FORCE',
+  NAVY: 'NAVY',
+  SUPPORT: 'SUPPORT'
+} as const;
+
+export type UnitType = typeof UnitType[keyof typeof UnitType];
 
 export interface Resources {
   manpower?: number;
@@ -33,14 +35,16 @@ export interface Research {
   effects: string[];
 }
 
-export enum ResearchCategory {
-  INFANTRY = 'INFANTRY',
-  ARMOR = 'ARMOR',
-  AIR_FORCE = 'AIR_FORCE',
-  NAVY = 'NAVY',
-  INDUSTRY = 'INDUSTRY',
-  SECRET_WEAPONS = 'SECRET_WEAPONS'
-}
+export const ResearchCategory = {
+  INFANTRY: 'INFANTRY',
+  ARMOR: 'ARMOR',
+  AIR_FORCE: 'AIR_FORCE',
+  NAVY: 'NAVY',
+  INDUSTRY: 'INDUSTRY',
+  SECRET_WEAPONS: 'SECRET_WEAPONS'
+} as const;
+
+export type ResearchCategory = typeof ResearchCategory[keyof typeof ResearchCategory];
 
 export interface Task {
   id: string;
@@ -61,23 +65,27 @@ export interface Task {
   researchId?: string;
 }
 
-export enum TaskType {
-  UNIT_PRODUCTION = 'UNIT_PRODUCTION',
-  RESEARCH = 'RESEARCH',
-  MOVEMENT = 'MOVEMENT',
-  ATTACK = 'ATTACK',
-  DEFENSE = 'DEFENSE',
-  CONSTRUCTION = 'CONSTRUCTION',
-  DIPLOMACY = 'DIPLOMACY',
-  CUSTOM = 'CUSTOM'
-}
+export const TaskType = {
+  UNIT_PRODUCTION: 'UNIT_PRODUCTION',
+  RESEARCH: 'RESEARCH',
+  MOVEMENT: 'MOVEMENT',
+  ATTACK: 'ATTACK',
+  DEFENSE: 'DEFENSE',
+  CONSTRUCTION: 'CONSTRUCTION',
+  DIPLOMACY: 'DIPLOMACY',
+  CUSTOM: 'CUSTOM'
+} as const;
 
-export enum TaskStatus {
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED'
-}
+export type TaskType = typeof TaskType[keyof typeof TaskType];
+
+export const TaskStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const;
+
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
 
 export interface Player {
   id: string;
@@ -87,11 +95,13 @@ export interface Player {
   role: PlayerRole;
 }
 
-export enum PlayerRole {
-  COMMANDER = 'COMMANDER',
-  OFFICER = 'OFFICER',
-  MEMBER = 'MEMBER'
-}
+export const PlayerRole = {
+  COMMANDER: 'COMMANDER',
+  OFFICER: 'OFFICER',
+  MEMBER: 'MEMBER'
+} as const;
+
+export type PlayerRole = typeof PlayerRole[keyof typeof PlayerRole];
 
 export interface Strategy {
   id: string;

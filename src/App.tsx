@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GanttChart } from './components/GanttChart';
 import { TaskForm } from './components/TaskForm/TaskForm';
 import { Modal } from './components/Modal/Modal';
 import { useStrategyStore } from './store/useStrategyStore';
 import { useCurrentStrategy } from './hooks/useCurrentStrategy';
-import { Task, TaskType, TaskStatus } from './types';
+import { type Task, TaskType, TaskStatus } from './types';
 import { addDays } from 'date-fns';
 import { FaPlus } from 'react-icons/fa';
 import './App.css';
@@ -112,6 +112,10 @@ function App() {
     setIsModalOpen(true);
   };
   
+  const handleTaskMove = (taskId: string, newStartDate: Date, newEndDate: Date) => {
+    updateTask(taskId, { startDate: newStartDate, endDate: newEndDate });
+  };
+  
   if (!strategy) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -142,6 +146,7 @@ function App() {
           startDate={strategy.startDate}
           endDate={strategy.endDate}
           onTaskClick={handleTaskClick}
+          onTaskMove={handleTaskMove}
         />
         
         <Modal

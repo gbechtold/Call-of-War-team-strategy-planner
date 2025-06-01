@@ -1,7 +1,9 @@
 import React from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { type Task, TaskType, TaskStatus } from '../../types';
+import { CSS } from '@dnd-kit/utilities';
 
-interface TaskBarProps {
+interface DraggableTaskBarProps {
   task: Task;
   left: number;
   width: number;
@@ -63,13 +65,39 @@ const getTaskColor = (type: TaskType, status: TaskStatus): string => {
   return colors[type]?.[status] || 'bg-gray-500';
 };
 
-export const TaskBar: React.FC<TaskBarProps> = ({ task, left, width, onClick }) => {
+export const DraggableTaskBar: React.FC<DraggableTaskBarProps> = ({ 
+  task, 
+  left, 
+  width, 
+  onClick 
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: task.id,
+    data: task,
+  });
+
+  const style = {
+    left: `${left}%`,
+    width: `${width}%`,
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const color = getTaskColor(task.type, task.status);
-  
+
   return (
     <div
-      className={`absolute h-8 top-2 ${color} rounded cursor-pointer hover:opacity-90 transition-opacity flex items-center px-2 text-white text-xs font-medium shadow-md`}
-      style={{ left: `${left}%`, width: `${width}%` }}
+      ref={setNodeRef}
+      style={style}
+      className={`absolute h-8 top-2 ${color} rounded cursor-move hover:opacity-90 transition-opacity flex items-center px-2 text-white text-xs font-medium shadow-md`}
+      {...listeners}
+      {...attributes}
       onClick={onClick}
       title={`${task.name}\n${task.description || ''}`}
     >

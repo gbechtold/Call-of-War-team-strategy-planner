@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Task, Player, Strategy } from '../types';
+import { type Task, type Player, type Strategy } from '../types';
 
 interface StrategyStore {
   strategies: Strategy[];

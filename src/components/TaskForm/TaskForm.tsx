@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Task, TaskType, TaskStatus } from '../../types';
+import { type Task, TaskType, TaskStatus } from '../../types';
 import { format } from 'date-fns';
 
 interface TaskFormProps {
