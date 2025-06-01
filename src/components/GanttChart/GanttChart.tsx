@@ -4,6 +4,7 @@ import { type Task, type Unit } from '../../types';
 import { format, startOfWeek, addDays, differenceInDays, isWithinInterval } from 'date-fns';
 import { DraggableTaskBar } from './DraggableTaskBar';
 import { TaskBar } from './TaskBar';
+import { useStrategyStore } from '../../store/useStrategyStore';
 
 interface GanttChartProps {
   tasks: Task[];
@@ -155,6 +156,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     };
   };
   
+  const { players } = useStrategyStore();
+  
   const groupedTasks = tasks.reduce((acc, task) => {
     const category = task.category || 'Other';
     if (!acc[category]) acc[category] = [];
@@ -219,6 +222,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                             task={task}
                             left={position.left}
                             width={position.width}
+                            players={players}
                             onClick={() => onTaskClick?.(task)}
                           />
                         ) : (
@@ -226,6 +230,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                             task={task}
                             left={position.left}
                             width={position.width}
+                            players={players}
                             onClick={() => onTaskClick?.(task)}
                           />
                         )}

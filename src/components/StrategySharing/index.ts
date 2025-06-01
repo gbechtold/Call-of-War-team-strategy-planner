@@ -1,0 +1,1 @@
+export { StrategySharing } from './StrategySharing';

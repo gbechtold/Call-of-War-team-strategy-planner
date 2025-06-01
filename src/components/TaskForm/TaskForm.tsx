@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { type Task, TaskType, TaskStatus } from '../../types';
+import { useStrategyStore } from '../../store/useStrategyStore';
 import { format } from 'date-fns';
 
 interface TaskFormProps {
@@ -10,6 +11,7 @@ interface TaskFormProps {
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, onCancel }) => {
+  const { players } = useStrategyStore();
   const [formData, setFormData] = useState({
     name: task?.name || '',
     description: task?.description || '',
@@ -19,6 +21,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
     startDate: task ? format(new Date(task.startDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     endDate: task ? format(new Date(task.endDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     priority: task?.priority || 1,
+    assignedPlayers: task?.assignedPlayers || [],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -28,7 +31,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
       strategyId,
-      assignedPlayers: task?.assignedPlayers || [],
+      assignedPlayers: formData.assignedPlayers,
       dependencies: task?.dependencies || [],
     });
   };
@@ -148,6 +151,41 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
           <option value={3}>Low</option>
         </select>
       </div>
+
+      {players.length > 0 && (
+        <div>
+          <label className="block text-sm font-bebas text-cod-accent mb-2">Assign Players</label>
+          <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
+            {players.map((player) => (
+              <label key={player.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.assignedPlayers.includes(player.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({
+                        ...formData,
+                        assignedPlayers: [...formData.assignedPlayers, player.id]
+                      });
+                    } else {
+                      setFormData({
+                        ...formData,
+                        assignedPlayers: formData.assignedPlayers.filter(id => id !== player.id)
+                      });
+                    }
+                  }}
+                  className="rounded border-cod-accent/30 text-cod-accent focus:ring-cod-accent"
+                />
+                <div
+                  className="w-3 h-3 rounded-full border border-white/50"
+                  style={{ backgroundColor: player.color }}
+                />
+                <span className="text-sm text-gray-300">{player.name} ({player.nation})</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end space-x-3 pt-4">
         <button

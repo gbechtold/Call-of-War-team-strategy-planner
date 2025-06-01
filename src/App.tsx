@@ -4,6 +4,8 @@ import { GanttChart } from './components/GanttChart';
 import { TaskForm } from './components/TaskForm/TaskForm';
 import { Modal } from './components/Modal/Modal';
 import { UnitMenu } from './components/UnitMenu/UnitMenu';
+import { PlayerManager } from './components/PlayerManager/PlayerManager';
+import { StrategySharing } from './components/StrategySharing/StrategySharing';
 import { useStrategyStore } from './store/useStrategyStore';
 import { useCurrentStrategy } from './hooks/useCurrentStrategy';
 import { type Task, type Unit, TaskType, TaskStatus } from './types';
@@ -18,6 +20,8 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   const [showUnitMenu, setShowUnitMenu] = useState(true);
+  const [showPlayerManager, setShowPlayerManager] = useState(true);
+  const [showStrategySharing, setShowStrategySharing] = useState(false);
   
   // Initialize with demo data
   useEffect(() => {
@@ -126,12 +130,24 @@ function App() {
               <h1 className="text-4xl font-bebas text-cod-accent tracking-wider">Call of War Strategy Planner</h1>
               <p className="text-gray-300">{strategy.name}</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowUnitMenu(!showUnitMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-cod-secondary border-2 border-cod-accent text-cod-accent rounded-md hover:bg-cod-accent hover:text-cod-primary transition-all font-bebas"
+                className="flex items-center gap-2 px-3 py-2 bg-cod-secondary border-2 border-cod-accent text-cod-accent rounded-md hover:bg-cod-accent hover:text-cod-primary transition-all font-bebas text-sm"
               >
-                <FaBars /> Units Menu
+                <FaBars /> Units
+              </button>
+              <button
+                onClick={() => setShowPlayerManager(!showPlayerManager)}
+                className="flex items-center gap-2 px-3 py-2 bg-cod-secondary border-2 border-cod-accent text-cod-accent rounded-md hover:bg-cod-accent hover:text-cod-primary transition-all font-bebas text-sm"
+              >
+                👥 Alliance
+              </button>
+              <button
+                onClick={() => setShowStrategySharing(!showStrategySharing)}
+                className="flex items-center gap-2 px-3 py-2 bg-cod-secondary border-2 border-cod-accent text-cod-accent rounded-md hover:bg-cod-accent hover:text-cod-primary transition-all font-bebas text-sm"
+              >
+                🔗 Share
               </button>
               <button
                 onClick={handleNewTask}
@@ -143,12 +159,26 @@ function App() {
           </div>
         </header>
         
-        <main className="container mx-auto p-4 flex gap-6">
-          {showUnitMenu && (
-            <div className="animate-fadeIn">
-              <UnitMenu />
-            </div>
-          )}
+        <main className="container mx-auto p-4 flex gap-4">
+          <div className="flex flex-col gap-4">
+            {showUnitMenu && (
+              <div className="animate-fadeIn">
+                <UnitMenu />
+              </div>
+            )}
+            
+            {showPlayerManager && (
+              <div className="animate-fadeIn">
+                <PlayerManager />
+              </div>
+            )}
+            
+            {showStrategySharing && (
+              <div className="animate-fadeIn">
+                <StrategySharing />
+              </div>
+            )}
+          </div>
           
           <div className="flex-1">
             <div className="mb-6">
