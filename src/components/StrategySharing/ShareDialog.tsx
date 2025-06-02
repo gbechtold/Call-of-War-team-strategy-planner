@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useCurrentStrategy } from '../../hooks/useCurrentStrategy';
 import { useStrategyStore } from '../../store/useStrategyStore';
-import { FaShare, FaCopy, FaCheck, FaQrcode, FaEnvelope, FaDiscord, FaTelegram, FaWhatsapp, FaDownload, FaUpload, FaUsers, FaCrown, FaTimes, FaExternalLinkAlt } from 'react-icons/fa';
+import { useCollaboration } from '../../hooks/useCollaboration';
+import { FaShare, FaCopy, FaCheck, FaQrcode, FaEnvelope, FaDiscord, FaTelegram, FaWhatsapp, FaDownload, FaUpload, FaUsers, FaTimes, FaExternalLinkAlt, FaPlay, FaStop, FaLink } from 'react-icons/fa';
 import { encodeStrategy, decodeStrategy } from '../../utils/shareCode';
 
 interface ShareDialogProps {
@@ -12,6 +13,7 @@ interface ShareDialogProps {
 export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
   const { strategy } = useCurrentStrategy();
   const { tasks, players, createStrategy, createTask, addPlayer } = useStrategyStore();
+  const collaboration = useCollaboration();
   const [activeTab, setActiveTab] = useState<'share' | 'collaborate' | 'export' | 'import'>('share');
   const [shareMethod, setShareMethod] = useState<'link' | 'code' | 'qr'>('link');
   const [shareUrl, setShareUrl] = useState<string>('');
@@ -19,9 +21,10 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
   const [qrCode, setQrCode] = useState<string>('');
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({});
   const [importCode, setImportCode] = useState('');
-  const [collaboratorEmail, setCollaboratorEmail] = useState('');
-  const [collaboratorRole, setCollaboratorRole] = useState<'viewer' | 'editor' | 'admin'>('viewer');
-  const [realTimeEnabled, setRealTimeEnabled] = useState(false);
+  const [collaborationMode, setCollaborationMode] = useState<'create' | 'join'>('create');
+  const [roomName, setRoomName] = useState('');
+  const [collaborationUsername, setCollaborationUsername] = useState('');
+  const [shareType, setShareType] = useState<'view' | 'collaborate'>('view');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateShareableContent = async () => {
@@ -270,8 +273,67 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                     </p>
                   </div>
 
-                  {/* Share Method Selection */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
+                  {/* Share Type Selection */}
+                  <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20 mb-6">
+                    <h4 className="font-bebas text-cod-accent mb-3">Sharing Mode</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setShareType('view')}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          shareType === 'view'
+                            ? 'border-cod-accent bg-cod-accent/20 text-cod-accent'
+                            : 'border-cod-accent/30 text-gray-400 hover:border-cod-accent/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg">👁️</span>
+                          <div className="font-bebas">View Only</div>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Share a read-only version of your strategy. Recipients can view but not edit.
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setShareType('collaborate')}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          shareType === 'collaborate'
+                            ? 'border-cod-accent bg-cod-accent/20 text-cod-accent'
+                            : 'border-cod-accent/30 text-gray-400 hover:border-cod-accent/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg">🤝</span>
+                          <div className="font-bebas">Collaborate</div>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Create a collaboration room for real-time editing with conflict resolution.
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {shareType === 'collaborate' && (
+                    <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-400/20 mb-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-400">ℹ️</span>
+                        <span className="font-bebas text-blue-400">Collaboration Mode Selected</span>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-3">
+                        You're about to create a collaboration room. Switch to the "Collaborate" tab to set up real-time editing.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('collaborate')}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-bebas"
+                      >
+                        Go to Collaboration Setup
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Share Method Selection - Only for view-only sharing */}
+                  {shareType === 'view' && (
+                    <>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
                     <button
                       onClick={() => setShareMethod('link')}
                       className={`p-4 rounded-lg border-2 transition-all ${
@@ -395,6 +457,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                       </p>
                     </div>
                   )}
+                  </>
+                  )}
                 </div>
               )}
 
@@ -404,83 +468,193 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                   <div className="text-left">
                     <h3 className="text-xl font-bebas text-cod-accent mb-2">Real-time Collaboration</h3>
                     <p className="text-gray-400 text-sm mb-4">
-                      Invite alliance members to collaborate on your strategy in real-time
+                      Create or join a collaboration room for real-time strategy editing with automatic conflict resolution
                     </p>
                   </div>
 
-                  {/* Real-time Toggle */}
-                  <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-bebas text-cod-accent">Enable Real-time Collaboration</span>
-                      <button
-                        onClick={() => setRealTimeEnabled(!realTimeEnabled)}
-                        className={`w-12 h-6 rounded-full border-2 transition-colors ${
-                          realTimeEnabled
-                            ? 'bg-cod-accent border-cod-accent'
-                            : 'bg-cod-secondary border-cod-accent/30'
-                        } relative`}
-                      >
-                        <div
-                          className={`w-4 h-4 bg-white rounded-full transition-transform absolute top-[1px] ${
-                            realTimeEnabled ? 'translate-x-6' : 'translate-x-[1px]'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      When enabled, all collaborators will see live updates as changes are made
-                    </p>
-                  </div>
-
-                  {/* Add Collaborator */}
-                  <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20">
-                    <h4 className="font-bebas text-cod-accent mb-3">Invite Collaborators</h4>
-                    <div className="space-y-3">
-                      <input
-                        type="email"
-                        value={collaboratorEmail}
-                        onChange={(e) => setCollaboratorEmail(e.target.value)}
-                        placeholder="Enter email address..."
-                        className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent/30 rounded text-gray-300"
-                      />
-                      <select
-                        value={collaboratorRole}
-                        onChange={(e) => setCollaboratorRole(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent/30 rounded text-gray-300"
-                      >
-                        <option value="viewer">Viewer - Can view strategy</option>
-                        <option value="editor">Editor - Can edit tasks</option>
-                        <option value="admin">Admin - Full access</option>
-                      </select>
-                      <button
-                        onClick={() => {
-                          if (collaboratorEmail) {
-                            alert(`Invitation sent to ${collaboratorEmail} as ${collaboratorRole}`);
-                            setCollaboratorEmail('');
-                          }
-                        }}
-                        className="w-full px-4 py-2 bg-cod-accent text-cod-primary rounded hover:bg-cod-accent/90 transition-colors font-bebas"
-                      >
-                        Send Invitation
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Current Collaborators */}
-                  <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20">
-                    <h4 className="font-bebas text-cod-accent mb-3">Current Collaborators</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-cod-secondary rounded">
+                  {/* Connection Status */}
+                  {collaboration.isConnected && (
+                    <div className="p-4 bg-green-900/30 rounded-lg border border-green-400/20">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <FaCrown className="text-cod-accent" />
-                          <span className="text-gray-300">You (Owner)</span>
+                          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="font-bebas text-green-400">Connected to Room</span>
                         </div>
-                        <span className="text-xs text-gray-500">Full Access</span>
+                        <span className="text-green-400 font-mono text-lg">{collaboration.roomCode}</span>
                       </div>
-                      <div className="text-sm text-gray-500 text-left py-4">
-                        No collaborators invited yet
+                      <div className="text-sm text-gray-300 mb-3">
+                        {collaboration.connectedPeers} peer{collaboration.connectedPeers !== 1 ? 's' : ''} connected
+                        {collaboration.isHost && ' • You are the host'}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => copyToClipboard(collaboration.getRoomLink() || '', 'roomLink')}
+                          className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-bebas flex items-center justify-center gap-2"
+                        >
+                          {copied.roomLink ? <FaCheck /> : <FaCopy />}
+                          {copied.roomLink ? 'Copied!' : 'Copy Room Link'}
+                        </button>
+                        <button
+                          onClick={collaboration.leaveRoom}
+                          className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-bebas flex items-center gap-2"
+                        >
+                          <FaStop /> Leave Room
+                        </button>
                       </div>
                     </div>
+                  )}
+
+                  {/* Create or Join Room */}
+                  {!collaboration.isConnected && (
+                    <>
+                      {/* Mode Selection */}
+                      <div className="flex gap-2 mb-4">
+                        <button
+                          onClick={() => setCollaborationMode('create')}
+                          className={`flex-1 px-4 py-2 rounded font-bebas transition-colors ${
+                            collaborationMode === 'create'
+                              ? 'bg-cod-accent text-cod-primary'
+                              : 'bg-cod-secondary border border-cod-accent/30 text-cod-accent hover:bg-cod-accent/20'
+                          }`}
+                        >
+                          <FaPlay className="inline mr-2" />
+                          Create Room
+                        </button>
+                        <button
+                          onClick={() => setCollaborationMode('join')}
+                          className={`flex-1 px-4 py-2 rounded font-bebas transition-colors ${
+                            collaborationMode === 'join'
+                              ? 'bg-cod-accent text-cod-primary'
+                              : 'bg-cod-secondary border border-cod-accent/30 text-cod-accent hover:bg-cod-accent/20'
+                          }`}
+                        >
+                          <FaLink className="inline mr-2" />
+                          Join Room
+                        </button>
+                      </div>
+
+                      {/* Username Input */}
+                      <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20">
+                        <label className="block text-sm font-bebas text-cod-accent mb-2">Your Name</label>
+                        <input
+                          type="text"
+                          value={collaborationUsername}
+                          onChange={(e) => setCollaborationUsername(e.target.value)}
+                          placeholder="Enter your name for collaboration..."
+                          className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent/30 rounded text-gray-300"
+                          maxLength={20}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          This name will be visible to other collaborators
+                        </p>
+                      </div>
+
+                      {collaborationMode === 'create' && (
+                        <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20">
+                          <h4 className="font-bebas text-cod-accent mb-3">Create Collaboration Room</h4>
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              value={roomName}
+                              onChange={(e) => setRoomName(e.target.value)}
+                              placeholder="Room name (optional)..."
+                              className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent/30 rounded text-gray-300"
+                            />
+                            <button
+                              onClick={async () => {
+                                if (collaborationUsername.trim()) {
+                                  const roomCode = await collaboration.createRoom(collaborationUsername.trim());
+                                  if (roomCode) {
+                                    // Room created successfully, UI will update automatically
+                                  }
+                                }
+                              }}
+                              disabled={!collaborationUsername.trim() || collaboration.isJoining}
+                              className="w-full px-4 py-2 bg-cod-accent text-cod-primary rounded hover:bg-cod-accent/90 transition-colors font-bebas disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {collaboration.isJoining ? 'Creating Room...' : 'Create Room & Start Collaborating'}
+                            </button>
+                          </div>
+                          <div className="mt-3 p-3 bg-cod-primary/30 rounded border border-cod-accent/10">
+                            <p className="text-xs text-gray-400">
+                              📋 Once created, you'll get a shareable room link that team members can use to join instantly
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {collaborationMode === 'join' && (
+                        <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20">
+                          <h4 className="font-bebas text-cod-accent mb-3">Join Existing Room</h4>
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              placeholder="Enter room code (e.g. ABC123) or paste room link..."
+                              className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent/30 rounded text-gray-300 font-mono"
+                              onChange={(e) => {
+                                const value = e.target.value.toUpperCase();
+                                // Extract room code from URL if pasted
+                                const roomMatch = value.match(/room=([A-Z0-9]{6})/);
+                                if (roomMatch) {
+                                  e.target.value = roomMatch[1];
+                                } else if (value.length <= 6) {
+                                  e.target.value = value;
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={async () => {
+                                const input = document.querySelector('input[placeholder*="room code"]') as HTMLInputElement;
+                                const roomCode = input?.value?.trim();
+                                if (roomCode && collaborationUsername.trim()) {
+                                  const success = await collaboration.joinRoom(roomCode, collaborationUsername.trim());
+                                  if (success) {
+                                    input.value = '';
+                                  }
+                                }
+                              }}
+                              disabled={!collaborationUsername.trim() || collaboration.isJoining}
+                              className="w-full px-4 py-2 bg-cod-accent text-cod-primary rounded hover:bg-cod-accent/90 transition-colors font-bebas disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {collaboration.isJoining ? 'Joining Room...' : 'Join Room'}
+                            </button>
+                          </div>
+                          <div className="mt-3 p-3 bg-cod-primary/30 rounded border border-cod-accent/10">
+                            <p className="text-xs text-gray-400">
+                              🔗 Paste a room link or enter the 6-character room code shared by your team
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Error Display */}
+                  {collaboration.connectionError && (
+                    <div className="p-4 bg-red-900/30 rounded-lg border border-red-400/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-red-400 text-sm">{collaboration.connectionError}</span>
+                        <button
+                          onClick={collaboration.clearError}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <FaTimes />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Collaboration Features Info */}
+                  <div className="p-4 bg-cod-secondary/50 rounded-lg border border-cod-accent/20">
+                    <h4 className="font-bebas text-cod-accent mb-2">Collaboration Features</h4>
+                    <ul className="text-sm text-gray-300 space-y-1">
+                      <li>• Real-time strategy synchronization</li>
+                      <li>• Automatic conflict resolution</li>
+                      <li>• Task drag-and-drop collaboration</li>
+                      <li>• Live milestone updates</li>
+                      <li>• Browser-to-browser direct connection</li>
+                      <li>• No servers required - works with GitHub Pages</li>
+                    </ul>
                   </div>
                 </div>
               )}
