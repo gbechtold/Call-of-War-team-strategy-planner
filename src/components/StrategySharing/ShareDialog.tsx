@@ -77,6 +77,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
   };
 
   const shareViaEmail = () => {
+    if (!strategy) return;
     const subject = encodeURIComponent(`Call of War Strategy: ${strategy.name}`);
     const body = encodeURIComponent(
       `I'm sharing my Call of War strategy "${strategy.name}" with you.\n\n` +
@@ -91,6 +92,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
   };
 
   const shareViaSocial = (platform: string) => {
+    if (!strategy) return;
     const text = encodeURIComponent(`Check out my Call of War strategy: ${strategy.name}`);
     const url = encodeURIComponent(shareUrl);
     
@@ -109,6 +111,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
   };
 
   const downloadStrategy = () => {
+    if (!strategy) return;
     const strategyTasks = tasks.filter(task => task.strategyId === strategy.id);
     const exportData = {
       strategy,
