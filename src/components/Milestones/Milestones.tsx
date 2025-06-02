@@ -61,6 +61,9 @@ export const Milestones: React.FC = () => {
     const storageKey = `milestones-${strategy.id}`;
     const updated = [...milestones, milestone];
     localStorage.setItem(storageKey, JSON.stringify(updated));
+    
+    // Dispatch custom event for same-window updates
+    window.dispatchEvent(new Event('milestonesUpdated'));
   };
 
   const handleEditMilestone = (milestone: Milestone) => {
