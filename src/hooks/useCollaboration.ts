@@ -14,6 +14,7 @@ interface CollaborationState {
   isJoining: boolean;
   connectionError: string | null;
   lastSyncTime: Date | null;
+  recentUpdates: Set<string>; // Track recently updated elements for animations
 }
 
 export const useCollaboration = () => {
@@ -35,9 +36,33 @@ export const useCollaboration = () => {
     isJoining: false,
     connectionError: null,
     lastSyncTime: null,
+    recentUpdates: new Set<string>(),
   });
 
   const processingMessage = useRef(false);
+
+  // Add animation tracking for updates
+  const addRecentUpdate = useCallback((elementId: string) => {
+    setState(prev => {
+      const newRecentUpdates = new Set(prev.recentUpdates);
+      newRecentUpdates.add(elementId);
+      return { ...prev, recentUpdates: newRecentUpdates };
+    });
+    
+    // Remove from recent updates after animation duration
+    setTimeout(() => {
+      setState(prev => {
+        const newRecentUpdates = new Set(prev.recentUpdates);
+        newRecentUpdates.delete(elementId);
+        return { ...prev, recentUpdates: newRecentUpdates };
+      });
+    }, 1000); // Match longest animation duration
+  }, []);
+
+  // Check if an element was recently updated (for animation classes)
+  const isRecentlyUpdated = useCallback((elementId: string) => {
+    return state.recentUpdates.has(elementId);
+  }, [state.recentUpdates]);
 
   // Initialize collaboration system
   useEffect(() => {
@@ -125,6 +150,34 @@ export const useCollaboration = () => {
             connectedPeers: Math.max(0, prev.connectedPeers - 1),
           }));
           break;
+
+        case 'strategy_update':
+          if (message.payload.strategy && message.payload.strategy.id === strategy?.id) {
+            updateStrategy(message.payload.strategy.id, message.payload.strategy);
+            addRecentUpdate(`strategy-${message.payload.strategy.id}`);
+          }
+          break;
+
+        case 'task_create':
+          if (message.payload.task) {
+            createTask(message.payload.task);
+            addRecentUpdate(`task-${message.payload.task.id}`);
+          }
+          break;
+
+        case 'task_update':
+          if (message.payload.taskId && message.payload.updates) {
+            updateTask(message.payload.taskId, message.payload.updates);
+            addRecentUpdate(`task-${message.payload.taskId}`);
+          }
+          break;
+
+        case 'task_delete':
+          if (message.payload.taskId) {
+            deleteTask(message.payload.taskId);
+            addRecentUpdate(`task-delete-${message.payload.taskId}`);
+          }
+          break;
       }
 
       setState(prev => ({ ...prev, lastSyncTime: new Date() }));
@@ -133,7 +186,7 @@ export const useCollaboration = () => {
     } finally {
       processingMessage.current = false;
     }
-  }, [strategy, tasks, updateStrategy, createTask, updateTask, deleteTask]);
+  }, [strategy, tasks, updateStrategy, createTask, updateTask, deleteTask, addRecentUpdate, conflictResolution]);
 
   // Send current strategy state to peers
   const sendCurrentState = useCallback(async () => {
@@ -337,5 +390,9 @@ export const useCollaboration = () => {
     // Conflict Resolution
     conflictResolution,
     peerId,
+    
+    // Animation helpers
+    isRecentlyUpdated,
+    recentUpdates: state.recentUpdates,
   };
 };

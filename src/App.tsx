@@ -73,6 +73,7 @@ function App() {
   const notesRef = useRef<HTMLDivElement>(null);
   const autoPlanRef = useRef<HTMLDivElement>(null);
   const milestonesRef = useRef<HTMLDivElement>(null);
+  const collaborationRef = useRef<HTMLDivElement>(null);
   
   // Check for shared strategy in URL
   useEffect(() => {
@@ -319,7 +320,10 @@ function App() {
       key: 'c',
       altKey: true,
       description: 'Toggle Collaboration Panel',
-      action: () => setShowCollaboration(!showCollaboration),
+      action: () => {
+        setShowCollaboration(!showCollaboration);
+        setTimeout(() => scrollToComponent(collaborationRef), 100);
+      },
       category: 'Navigation'
     },
     // Quick Actions
@@ -572,7 +576,10 @@ function App() {
               </ShortcutTooltip>
               <ShortcutTooltip shortcut={keyboardShortcuts.find(s => s.key === 'c' && s.altKey)}>
                 <button
-                  onClick={() => handlePanelToggle('collaborate', () => setShowCollaboration(!showCollaboration))}
+                  onClick={() => handlePanelToggle('collaborate', () => {
+                    setShowCollaboration(!showCollaboration);
+                    setTimeout(() => scrollToComponent(collaborationRef), 100);
+                  })}
                   className="flex items-center justify-center gap-1 px-3 py-2 md:px-2 md:py-1 bg-cod-secondary border-2 border-cod-accent text-cod-accent rounded-md hover:bg-cod-accent hover:text-cod-primary transition-all font-bebas text-sm md:text-xs"
                 >
                   🤝 Collaborate
@@ -683,7 +690,7 @@ function App() {
                     </div>
                   )}
                   {isPanelOpen('collaborate') && (
-                    <div className="animate-fadeIn">
+                    <div ref={collaborationRef} className="animate-fadeIn">
                       <CollaborationPanel />
                     </div>
                   )}
@@ -722,7 +729,7 @@ function App() {
                     </div>
                   )}
                   {showCollaboration && (
-                    <div className="animate-fadeIn">
+                    <div ref={collaborationRef} className="animate-fadeIn">
                       <CollaborationPanel />
                     </div>
                   )}

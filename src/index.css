@@ -42,6 +42,62 @@
     }
   }
   
+  /* Collaboration update animations */
+  .animate-slideInRight {
+    animation: slideInRight 0.3s ease-out;
+  }
+  
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  .animate-pulse-update {
+    animation: pulseUpdate 0.6s ease-in-out;
+  }
+  
+  @keyframes pulseUpdate {
+    0% {
+      background-color: rgba(212, 175, 55, 0.1);
+      transform: scale(1);
+    }
+    50% {
+      background-color: rgba(212, 175, 55, 0.3);
+      transform: scale(1.02);
+    }
+    100% {
+      background-color: transparent;
+      transform: scale(1);
+    }
+  }
+  
+  .animate-bounce-in {
+    animation: bounceIn 0.4s ease-out;
+  }
+  
+  @keyframes bounceIn {
+    0% {
+      transform: scale(0.3);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
   /* Enhanced scrollbar styling */
   .custom-scrollbar {
     scrollbar-width: thin;

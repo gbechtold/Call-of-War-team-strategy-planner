@@ -21,6 +21,7 @@ export const CollaborationPanel: React.FC = () => {
     clearError,
     getRoomLink,
     conflictResolution,
+    recentUpdates,
   } = useCollaboration();
 
   const [showJoinForm, setShowJoinForm] = useState(false);
@@ -81,7 +82,7 @@ export const CollaborationPanel: React.FC = () => {
   };
 
   return (
-    <div className="bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20 w-64">
+    <div className="bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20 w-56">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-bebas text-cod-accent flex items-center gap-2">
@@ -91,9 +92,19 @@ export const CollaborationPanel: React.FC = () => {
       </div>
 
       {/* Connection Status */}
-      <div className="mb-3 p-2 bg-cod-primary/30 rounded border border-cod-accent/20">
+      <div className={`mb-3 p-2 bg-cod-primary/30 rounded border border-cod-accent/20 ${
+        recentUpdates.size > 0 ? 'animate-pulse-update' : ''
+      }`}>
         <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-300">{getConnectionStatusText()}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-300">{getConnectionStatusText()}</span>
+            {recentUpdates.size > 0 && (
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-cod-accent rounded-full animate-pulse"></div>
+                <span className="text-cod-accent text-[10px]">syncing</span>
+              </div>
+            )}
+          </div>
           {roomCode && (
             <span className="text-cod-accent font-mono font-bold">{roomCode}</span>
           )}
