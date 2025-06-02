@@ -433,7 +433,7 @@ function App() {
       <div className="h-screen flex flex-col bg-cod-secondary">
         <header className="bg-cod-primary text-white p-3 shadow-2xl border-b-4 border-cod-accent relative">
           <div className="absolute -top-8 right-2 text-xs text-gray-600 opacity-50">
-            v1.2.0 • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            v1.3.0 • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </div>
           <div className="flex items-center justify-between">
             <div>
