@@ -79,6 +79,14 @@ export const useCollaboration = () => {
       handleIncomingMessage(message);
     });
 
+    // Set up peer count monitoring
+    webrtcManager.onPeerCountChange((count) => {
+      setState(prev => ({
+        ...prev,
+        connectedPeers: count,
+      }));
+    });
+
     // Check for room code in URL on initialization
     const urlRoomCode = extractRoomCodeFromUrl();
     if (urlRoomCode && strategy) {
@@ -95,7 +103,7 @@ export const useCollaboration = () => {
     }
 
     return () => {
-      webrtcManager.disconnect();
+      webrtcManager.leaveRoom();
     };
   }, [strategy?.id]);
 
@@ -292,7 +300,7 @@ export const useCollaboration = () => {
 
   // Leave collaboration room
   const leaveRoom = useCallback(async () => {
-    await webrtcManager.disconnect();
+    await webrtcManager.leaveRoom();
     
     setState(prev => ({
       ...prev,
@@ -312,10 +320,16 @@ export const useCollaboration = () => {
   const broadcastChange = useCallback((type: CollaborationMessage['type'], payload: any) => {
     if (!state.isConnected) return;
 
-    webrtcManager.broadcastStrategyUpdate(type, {
-      ...payload,
-      author: state.username,
+    webrtcManager.sendMessage({
+      type,
+      payload: {
+        ...payload,
+        author: state.username,
+        timestamp: new Date(),
+      },
       timestamp: new Date(),
+      author: state.username,
+      messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     });
   }, [state.isConnected, state.username]);
 
