@@ -11,7 +11,7 @@ export interface PeerConnection {
 }
 
 export interface CollaborationMessage {
-  type: 'strategy_update' | 'task_update' | 'task_create' | 'task_delete' | 'user_cursor' | 'sync_request' | 'ping' | 'user_joined' | 'user_left';
+  type: 'strategy_update' | 'task_update' | 'task_create' | 'task_delete' | 'user_cursor' | 'sync_request' | 'ping' | 'user_joined' | 'user_left' | 'chat_message';
   payload: any;
   timestamp: Date;
   author: string;

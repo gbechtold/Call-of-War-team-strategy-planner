@@ -11,6 +11,7 @@ import { AutoPlan } from './components/AutoPlan';
 import { Milestones } from './components/Milestones';
 import { RevisionHistory } from './components/RevisionHistory';
 import { CollaborationPanel } from './components/Collaboration';
+import { Chat } from './components/Chat';
 import { ShortcutTooltip } from './components/KeyboardShortcuts/ShortcutTooltip';
 import { ShortcutHelp } from './components/KeyboardShortcuts/ShortcutHelp';
 import { MobileSwipeHandler } from './components/SwipeNavigation/MobileSwipeHandler';
@@ -19,6 +20,7 @@ import { useMobilePanels, type Panel } from './hooks/useMobilePanels';
 import { useIsMobile } from './hooks/useSwipeGestures';
 import { useStrategyStore } from './store/useStrategyStore';
 import { useCurrentStrategy } from './hooks/useCurrentStrategy';
+import { useRealtimeStore } from './hooks/useRealtimeStore';
 import { type Task, type Unit, TaskType, TaskStatus } from './types';
 import { addDays, addHours } from 'date-fns';
 import { FaPlus, FaBars, FaPen, FaStickyNote, FaRocket, FaFlag, FaTimes, FaKeyboard } from 'react-icons/fa';
@@ -26,7 +28,8 @@ import { getUnitBuildDuration } from './data/units';
 import './App.css';
 
 function App() {
-  const { createStrategy, createTask, updateTask, updateStrategy, deleteTask } = useStrategyStore();
+  const { createStrategy } = useStrategyStore();
+  const { createTask, updateTask, updateStrategy, deleteTask } = useRealtimeStore();
   const { strategy, tasks } = useCurrentStrategy();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
@@ -827,6 +830,9 @@ function App() {
           onClose={() => setShowShortcutHelp(false)}
           shortcuts={keyboardShortcuts}
         />
+        
+        {/* Real-time Chat */}
+        <Chat />
       </div>
     </DndContext>
   );

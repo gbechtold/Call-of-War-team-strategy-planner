@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { type Player, PlayerRole } from '../../types';
-import { useStrategyStore } from '../../store/useStrategyStore';
+import { useRealtimeStore } from '../../hooks/useRealtimeStore';
 import { FaPlus, FaTrash, FaUser } from 'react-icons/fa';
 import { getCountryFlag } from '../../utils/countryFlags';
 
@@ -136,7 +136,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSubmit, onDelete }) =
 
 
 export const PlayerManager: React.FC = () => {
-  const { players, addPlayer, updatePlayer, removePlayer } = useStrategyStore();
+  const { players, addPlayer, updatePlayer, removePlayer } = useRealtimeStore();
   const [showForm, setShowForm] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | undefined>(undefined);
 

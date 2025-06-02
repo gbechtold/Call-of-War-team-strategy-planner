@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useStrategyStore } from '../../store/useStrategyStore';
+import { useRealtimeStore } from '../../hooks/useRealtimeStore';
 import { useCurrentStrategy } from '../../hooks/useCurrentStrategy';
 import { FaStickyNote, FaSave, FaDownload } from 'react-icons/fa';
 
 export const StrategyNotes: React.FC = () => {
-  const { updateStrategy } = useStrategyStore();
+  const { updateStrategy } = useRealtimeStore();
   const { strategy } = useCurrentStrategy();
   const [notes, setNotes] = useState(strategy?.notes || '');
   const [isSaved, setIsSaved] = useState(true);
