@@ -585,40 +585,61 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                     <button
                       onClick={() => {
                         if (importCode.trim()) {
-                          const decoded = decodeStrategy(importCode.trim());
-                          if (!decoded) {
-                            alert('Invalid share code. Please check and try again.');
-                            return;
+                          try {
+                            const decoded = decodeStrategy(importCode.trim());
+                            if (!decoded) {
+                              alert('Invalid share code. Please check and try again.');
+                              return;
+                            }
+                            
+                            // Validate data before importing
+                            if (!decoded.strategy || !Array.isArray(decoded.tasks)) {
+                              alert('Invalid strategy data format.');
+                              return;
+                            }
+                            
+                            // Create the imported strategy
+                            const importedStrategy = {
+                              ...decoded.strategy,
+                              name: `${decoded.strategy.name} (Imported)`,
+                              createdAt: new Date(),
+                              updatedAt: new Date(),
+                              startDate: new Date(decoded.strategy.startDate),
+                              endDate: new Date(decoded.strategy.endDate)
+                            };
+                            
+                            createStrategy(importedStrategy);
+                            
+                            // Import tasks with validation
+                            if (decoded.tasks && Array.isArray(decoded.tasks)) {
+                              decoded.tasks.forEach((task: any) => {
+                                if (task && task.startDate && task.endDate) {
+                                  createTask({
+                                    ...task,
+                                    strategyId: importedStrategy.id,
+                                    startDate: new Date(task.startDate),
+                                    endDate: new Date(task.endDate)
+                                  });
+                                }
+                              });
+                            }
+                            
+                            // Import players with validation
+                            if (decoded.players && Array.isArray(decoded.players)) {
+                              decoded.players.forEach((player: any) => {
+                                if (player && player.id && player.name) {
+                                  addPlayer(player);
+                                }
+                              });
+                            }
+                            
+                            setImportCode('');
+                            alert('Strategy imported successfully!');
+                            onClose();
+                          } catch (error) {
+                            console.error('Import error:', error);
+                            alert('Failed to import strategy. The code may be corrupted or too large.');
                           }
-                          
-                          // Create the imported strategy
-                          const importedStrategy = {
-                            ...decoded.strategy,
-                            name: `${decoded.strategy.name} (Imported)`,
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                          };
-                          
-                          createStrategy(importedStrategy);
-                          
-                          // Import tasks
-                          decoded.tasks.forEach((task: any) => {
-                            createTask({
-                              ...task,
-                              strategyId: importedStrategy.id,
-                              startDate: new Date(task.startDate),
-                              endDate: new Date(task.endDate)
-                            });
-                          });
-                          
-                          // Import players
-                          decoded.players.forEach((player: any) => {
-                            addPlayer(player);
-                          });
-                          
-                          setImportCode('');
-                          alert('Strategy imported successfully!');
-                          onClose();
                         }
                       }}
                       disabled={!importCode.trim()}
