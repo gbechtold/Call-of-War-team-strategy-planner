@@ -18,7 +18,7 @@ import { useIsMobile } from './hooks/useSwipeGestures';
 import { useStrategyStore } from './store/useStrategyStore';
 import { useCurrentStrategy } from './hooks/useCurrentStrategy';
 import { type Task, type Unit, TaskType, TaskStatus } from './types';
-import { addDays } from 'date-fns';
+import { addDays, addHours } from 'date-fns';
 import { FaPlus, FaBars, FaPen, FaStickyNote, FaRocket, FaFlag, FaTimes, FaKeyboard } from 'react-icons/fa';
 import { getUnitBuildDuration } from './data/units';
 import './App.css';
@@ -384,7 +384,7 @@ function App() {
       status: TaskStatus.PENDING,
       category: unitCategory,
       startDate: dropDate,
-      endDate: addDays(dropDate, buildDuration),
+      endDate: addHours(dropDate, buildDuration),
       strategyId: strategy!.id,
       assignedPlayers: [],
       dependencies: [],
@@ -413,7 +413,7 @@ function App() {
       status: TaskStatus.PENDING,
       category: unitCategory,
       startDate: startDate,
-      endDate: addDays(startDate, buildDuration),
+      endDate: addHours(startDate, buildDuration),
       strategyId: strategy!.id,
       assignedPlayers: [],
       dependencies: [],
