@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { webrtcManager, type CollaborationMessage, extractRoomCodeFromUrl } from '../utils/webrtc';
 import { useStrategyStore } from '../store/useStrategyStore';
 import { useCurrentStrategy } from './useCurrentStrategy';
+import { useConflictResolution } from './useConflictResolution';
 import { type Task, type Strategy } from '../types';
 
 interface CollaborationState {
@@ -18,6 +19,12 @@ interface CollaborationState {
 export const useCollaboration = () => {
   const { strategy, tasks } = useCurrentStrategy();
   const { updateStrategy, createTask, updateTask, deleteTask } = useStrategyStore();
+  
+  // Generate a unique peer ID for this session
+  const peerId = useRef(`peer-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`).current;
+  
+  // Initialize conflict resolution
+  const conflictResolution = useConflictResolution(peerId);
   
   const [state, setState] = useState<CollaborationState>({
     isConnected: false,
@@ -75,34 +82,30 @@ export const useCollaboration = () => {
     try {
       console.log('Processing collaboration message:', message);
 
+      // Convert collaboration message to operation format
+      const operation = {
+        id: message.messageId,
+        type: message.type === 'strategy_update' ? 'update' as const :
+              message.type === 'task_create' ? 'create' as const :
+              message.type === 'task_update' ? 'update' as const :
+              message.type === 'task_delete' ? 'delete' as const : 'update' as const,
+        target: message.type.startsWith('strategy') ? 'strategy' as const : 'task' as const,
+        targetId: message.payload.strategyId || message.payload.taskId || message.payload.task?.id || '',
+        data: message.payload.updates || message.payload.task || message.payload,
+        vectorClock: message.payload.vectorClock || {},
+        timestamp: message.timestamp,
+        author: message.author,
+        dependencies: message.payload.dependencies || [],
+      };
+
+      // Process through conflict resolution system
+      const resolution = conflictResolution.processRemoteOperation(operation);
+      
+      if (resolution) {
+        console.log('Conflict resolution applied:', resolution);
+      }
+
       switch (message.type) {
-        case 'strategy_update':
-          if (strategy && message.payload.strategyId === strategy.id) {
-            updateStrategy(strategy.id, message.payload.updates);
-          }
-          break;
-
-        case 'task_create':
-          if (message.payload.task) {
-            // Check if task already exists to avoid duplicates
-            const existingTask = tasks.find(t => t.id === message.payload.task.id);
-            if (!existingTask) {
-              createTask(message.payload.task);
-            }
-          }
-          break;
-
-        case 'task_update':
-          if (message.payload.taskId && message.payload.updates) {
-            updateTask(message.payload.taskId, message.payload.updates);
-          }
-          break;
-
-        case 'task_delete':
-          if (message.payload.taskId) {
-            deleteTask(message.payload.taskId);
-          }
-          break;
 
         case 'sync_request':
           // Send current strategy state to requesting peer
@@ -330,5 +333,9 @@ export const useCollaboration = () => {
     broadcastTaskCreate,
     broadcastTaskUpdate,
     broadcastTaskDelete,
+    
+    // Conflict Resolution
+    conflictResolution,
+    peerId,
   };
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCollaboration } from '../../hooks/useCollaboration';
-import { FaUsers, FaCopy, FaSignOutAlt, FaUserPlus, FaExclamationTriangle, FaSpinner, FaCheck, FaClock } from 'react-icons/fa';
+import { ConflictNotifications, ConflictDashboard } from '../ConflictResolution';
+import { FaUsers, FaCopy, FaSignOutAlt, FaUserPlus, FaExclamationTriangle, FaSpinner, FaCheck, FaClock, FaChartBar } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
 export const CollaborationPanel: React.FC = () => {
@@ -19,12 +20,14 @@ export const CollaborationPanel: React.FC = () => {
     setUsername,
     clearError,
     getRoomLink,
+    conflictResolution,
   } = useCollaboration();
 
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState('');
   const [localUsername, setLocalUsername] = useState(username);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showConflictDashboard, setShowConflictDashboard] = useState(false);
 
   const handleCreateRoom = async () => {
     const roomCode = await createRoom(localUsername);
@@ -221,6 +224,14 @@ export const CollaborationPanel: React.FC = () => {
             </div>
           </div>
 
+          {/* Conflict Resolution Dashboard Toggle */}
+          <button
+            onClick={() => setShowConflictDashboard(!showConflictDashboard)}
+            className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent text-cod-accent rounded text-sm font-bebas hover:bg-cod-accent hover:text-cod-primary transition-colors flex items-center justify-center gap-2"
+          >
+            <FaChartBar /> {showConflictDashboard ? 'Hide' : 'Show'} Conflict Stats
+          </button>
+
           {/* Leave Room */}
           <button
             onClick={handleLeaveRoom}
@@ -236,6 +247,24 @@ export const CollaborationPanel: React.FC = () => {
           Real-time collaboration allows multiple users to edit the same strategy simultaneously.
         </p>
       </div>
+
+      {/* Conflict Resolution Components */}
+      <>
+        <ConflictNotifications
+          notifications={conflictResolution.notifications}
+          onDismiss={conflictResolution.dismissNotification}
+        />
+        
+        {showConflictDashboard && isConnected && (
+          <div className="fixed top-20 left-4 z-40">
+            <ConflictDashboard
+              stats={conflictResolution.getConflictStats()}
+              lastResolution={conflictResolution.lastResolution}
+              isProcessing={conflictResolution.isProcessing}
+            />
+          </div>
+        )}
+      </>
     </div>
   );
 };
