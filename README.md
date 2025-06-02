@@ -1,4 +1,4 @@
-# 🎖️ Call of War - Elite Command Strategy Planner
+# 🎖️ Call of War - Elite Command Strategy Planner (v1.3.0)
 
 > **"Victory through superior planning and coordination"**
 >
