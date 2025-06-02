@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useStrategyStore } from '../../store/useStrategyStore';
 import { useCurrentStrategy } from '../../hooks/useCurrentStrategy';
-import { FaShare, FaDownload, FaUpload, FaCopy, FaCheck, FaGlobe } from 'react-icons/fa';
+import { FaShare, FaDownload, FaUpload, FaCopy, FaCheck, FaGlobe, FaCode } from 'react-icons/fa';
+import { encodeStrategy, decodeStrategy } from '../../utils/shareCode';
 
 export const StrategySharing: React.FC = () => {
-  const { strategies, createStrategy } = useStrategyStore();
+  const { strategies, createStrategy, createTask, addPlayer, tasks, players, saveStrategyWithCode } = useStrategyStore();
   const { strategy } = useCurrentStrategy();
   const [shareUrl, setShareUrl] = useState<string>('');
+  const [shareCode, setShareCode] = useState<string>('');
+  const [importCode, setImportCode] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
   const generateShareableLink = async () => {
@@ -15,9 +19,12 @@ export const StrategySharing: React.FC = () => {
 
     setIsSharing(true);
     
-    // Simulate generating a shareable link (in a real app, this would call an API)
+    // Include strategy, tasks, and players in the shareable data
+    const strategyTasks = tasks.filter(task => task.strategyId === strategy.id);
     const strategyData = {
       strategy,
+      tasks: strategyTasks,
+      players: strategy.players || [],
       timestamp: new Date().toISOString(),
       version: '1.0'
     };
@@ -40,11 +47,82 @@ export const StrategySharing: React.FC = () => {
     }
   };
 
+  const generateShareCode = () => {
+    if (!strategy) return;
+    
+    const strategyTasks = tasks.filter(task => task.strategyId === strategy.id);
+    const strategyPlayers = players.filter(player => strategy.players?.includes(player.id));
+    const code = encodeStrategy(strategy, strategyTasks, strategyPlayers);
+    setShareCode(code);
+  };
+
+  const saveCurrentStrategy = () => {
+    if (!shareCode) {
+      generateShareCode();
+      return;
+    }
+    
+    saveStrategyWithCode(shareCode);
+    alert('Strategy saved locally!');
+  };
+
+  const copyShareCode = async () => {
+    try {
+      await navigator.clipboard.writeText(shareCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy share code:', err);
+    }
+  };
+
+  const importFromCode = () => {
+    if (!importCode.trim()) return;
+    
+    const decoded = decodeStrategy(importCode.trim());
+    if (!decoded) {
+      alert('Invalid share code. Please check and try again.');
+      return;
+    }
+    
+    // Create the imported strategy
+    const importedStrategy = {
+      ...decoded.strategy,
+      name: `${decoded.strategy.name} (Imported)`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    createStrategy(importedStrategy);
+    
+    // Import tasks
+    decoded.tasks.forEach((task: any) => {
+      createTask({
+        ...task,
+        strategyId: importedStrategy.id,
+        startDate: new Date(task.startDate),
+        endDate: new Date(task.endDate)
+      });
+    });
+    
+    // Import players
+    decoded.players.forEach((player: any) => {
+      addPlayer(player);
+    });
+    
+    setImportCode('');
+    alert('Strategy imported successfully!');
+  };
+
   const exportStrategy = () => {
     if (!strategy) return;
 
+    // Include strategy, tasks, and players in the export
+    const strategyTasks = tasks.filter(task => task.strategyId === strategy.id);
     const exportData = {
       strategy,
+      tasks: strategyTasks,
+      players: strategy.players || [],
       exportDate: new Date().toISOString(),
       version: '1.0'
     };
@@ -81,7 +159,28 @@ export const StrategySharing: React.FC = () => {
             updatedAt: new Date()
           };
           
+          // Create the strategy first
           createStrategy(importedStrategy);
+          
+          // Import tasks if they exist
+          if (importData.tasks && Array.isArray(importData.tasks)) {
+            importData.tasks.forEach((task: any) => {
+              createTask({
+                ...task,
+                strategyId: importedStrategy.id,
+                startDate: new Date(task.startDate),
+                endDate: new Date(task.endDate)
+              });
+            });
+          }
+          
+          // Import players if they exist
+          if (importData.players && Array.isArray(importData.players)) {
+            importData.players.forEach((player: any) => {
+              addPlayer(player);
+            });
+          }
+          
           alert('Strategy imported successfully!');
         }
       } catch (error) {
@@ -110,7 +209,27 @@ export const StrategySharing: React.FC = () => {
             updatedAt: new Date()
           };
           
+          // Create the strategy first
           createStrategy(sharedStrategy);
+          
+          // Load tasks if they exist
+          if (decoded.tasks && Array.isArray(decoded.tasks)) {
+            decoded.tasks.forEach((task: any) => {
+              createTask({
+                ...task,
+                strategyId: sharedStrategy.id,
+                startDate: new Date(task.startDate),
+                endDate: new Date(task.endDate)
+              });
+            });
+          }
+          
+          // Load players if they exist
+          if (decoded.players && Array.isArray(decoded.players)) {
+            decoded.players.forEach((player: any) => {
+              addPlayer(player);
+            });
+          }
           
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -119,9 +238,10 @@ export const StrategySharing: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to load shared strategy:', error);
+        alert('Failed to load shared strategy. The link may be invalid or corrupted.');
       }
     }
-  }, [createStrategy]);
+  }, [createStrategy, createTask, addPlayer]);
 
   return (
     <div className="bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20 w-56">
@@ -169,6 +289,72 @@ export const StrategySharing: React.FC = () => {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Share Code */}
+        <div className="p-2 bg-cod-primary/30 rounded border border-cod-accent/20">
+          <h3 className="font-bebas text-cod-accent mb-1 flex items-center gap-1 text-sm">
+            <FaCode /> Share Code
+          </h3>
+          <p className="text-xs text-gray-400 mb-2">
+            Generate a code to share
+          </p>
+          
+          {!shareCode ? (
+            <button
+              onClick={generateShareCode}
+              disabled={!strategy}
+              className="flex items-center gap-2 px-3 py-2 bg-cod-accent text-cod-primary rounded hover:bg-cod-accent/90 transition-colors font-bebas text-sm disabled:opacity-50 w-full"
+            >
+              <FaCode /> Generate Code
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="p-2 bg-cod-secondary rounded text-xs font-mono text-cod-accent break-all">
+                {shareCode.split('-').slice(0, 4).join('-')}...
+              </div>
+              <button
+                onClick={copyShareCode}
+                className="flex items-center gap-1 px-3 py-1 bg-cod-accent text-cod-primary rounded hover:bg-cod-accent/90 transition-colors font-bebas text-sm w-full"
+              >
+                {codeCopied ? <FaCheck /> : <FaCopy />}
+                {codeCopied ? 'Copied!' : 'Copy Full Code'}
+              </button>
+              <button
+                onClick={saveCurrentStrategy}
+                className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-bebas text-sm w-full"
+              >
+                <FaDownload /> Save Strategy Locally
+              </button>
+              <p className="text-xs text-gray-500">
+                Share this code in game chat or Discord
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Import Code */}
+        <div className="p-2 bg-cod-primary/30 rounded border border-cod-accent/20">
+          <h3 className="font-bebas text-cod-accent mb-1 flex items-center gap-1 text-sm">
+            <FaUpload /> Import Code
+          </h3>
+          <p className="text-xs text-gray-400 mb-2">
+            Load strategy from code
+          </p>
+          <input
+            type="text"
+            value={importCode}
+            onChange={(e) => setImportCode(e.target.value)}
+            placeholder="Paste code here..."
+            className="w-full px-2 py-1 text-xs bg-cod-secondary border border-cod-accent/30 rounded text-gray-300 mb-2"
+          />
+          <button
+            onClick={importFromCode}
+            disabled={!importCode.trim()}
+            className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-bebas text-sm disabled:opacity-50 w-full"
+          >
+            <FaUpload /> Import
+          </button>
         </div>
 
         {/* Export Strategy */}

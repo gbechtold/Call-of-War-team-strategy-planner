@@ -22,6 +22,10 @@ interface StrategyStore {
   addPlayer: (player: Omit<Player, 'id'>) => void;
   updatePlayer: (id: string, updates: Partial<Player>) => void;
   removePlayer: (id: string) => void;
+  
+  // Storage actions
+  saveStrategyWithCode: (shareCode: string) => void;
+  loadStrategyFromCode: (shareCode: string) => boolean;
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -98,4 +102,73 @@ export const useStrategyStore = create<StrategyStore>((set) => ({
       assignedPlayers: t.assignedPlayers.filter(pid => pid !== id),
     })),
   })),
+  
+  saveStrategyWithCode: (shareCode) => set((state) => {
+    if (!state.currentStrategyId) return state;
+    
+    const strategy = state.strategies.find(s => s.id === state.currentStrategyId);
+    if (!strategy) return state;
+    
+    // Save to localStorage with shareCode as key
+    const savedStrategies = JSON.parse(localStorage.getItem('savedStrategies') || '{}');
+    savedStrategies[shareCode] = {
+      strategy,
+      tasks: state.tasks.filter(t => t.strategyId === strategy.id),
+      players: state.players.filter(p => strategy.players?.includes(p.id)),
+      savedAt: new Date().toISOString(),
+      shareCode
+    };
+    localStorage.setItem('savedStrategies', JSON.stringify(savedStrategies));
+    
+    return state;
+  }),
+  
+  loadStrategyFromCode: (shareCode) => {
+    const savedStrategies = JSON.parse(localStorage.getItem('savedStrategies') || '{}');
+    const savedData = savedStrategies[shareCode];
+    
+    if (!savedData) return false;
+    
+    // Import the saved strategy
+    const importedStrategy = {
+      ...savedData.strategy,
+      name: `${savedData.strategy.name} (Loaded)`,
+      id: generateId(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      startDate: new Date(savedData.strategy.startDate),
+      endDate: new Date(savedData.strategy.endDate)
+    };
+    
+    set((state) => {
+      const newState = {
+        ...state,
+        strategies: [...state.strategies, importedStrategy],
+        currentStrategyId: importedStrategy.id
+      };
+      
+      // Import tasks
+      savedData.tasks.forEach((task: any) => {
+        const newTask = {
+          ...task,
+          id: generateId(),
+          strategyId: importedStrategy.id,
+          startDate: new Date(task.startDate),
+          endDate: new Date(task.endDate)
+        };
+        newState.tasks.push(newTask);
+      });
+      
+      // Import players
+      savedData.players.forEach((player: any) => {
+        if (!newState.players.find(p => p.id === player.id)) {
+          newState.players.push(player);
+        }
+      });
+      
+      return newState;
+    });
+    
+    return true;
+  }
 }));

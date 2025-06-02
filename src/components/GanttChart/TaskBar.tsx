@@ -1,5 +1,6 @@
 import React from 'react';
-import { type Task, TaskType, TaskStatus, type Player } from '../../types';
+import { type Task, TaskType, type Player, UnitType } from '../../types';
+import { GAME_UNITS } from '../../data/units';
 
 interface TaskBarProps {
   task: Task;
@@ -9,41 +10,117 @@ interface TaskBarProps {
   onClick?: () => void;
 }
 
-const getTaskColor = (type: TaskType, status: TaskStatus): string => {
+const getTaskColor = (task: Task): string => {
+  const { type, status, unitId } = task;
+  
+  // Unit-specific colors based on unit type
+  const unitColors = {
+    [UnitType.INFANTRY]: 'from-green-700 to-green-900', // Army green
+    [UnitType.ARMOR]: 'from-gray-600 to-gray-800', // Steel gray
+    [UnitType.ARTILLERY]: 'from-red-700 to-red-900', // Artillery red
+    [UnitType.AIR_FORCE]: 'from-blue-600 to-blue-800', // Sky blue
+    [UnitType.NAVY]: 'from-indigo-600 to-indigo-800', // Navy blue
+    [UnitType.SUPPORT]: 'from-yellow-600 to-yellow-800' // Support yellow
+  };
+  
+  // General task type colors for non-unit tasks
   const baseColors = {
-    UNIT_PRODUCTION: 'from-blue-600 to-blue-800',
+    UNIT_PRODUCTION: 'from-teal-600 to-teal-800',
     RESEARCH: 'from-purple-600 to-purple-800',
-    MOVEMENT: 'from-green-600 to-green-800',
+    MOVEMENT: 'from-emerald-600 to-emerald-800',
     ATTACK: 'from-red-600 to-red-800',
     DEFENSE: 'from-orange-600 to-orange-800',
-    CONSTRUCTION: 'from-yellow-600 to-yellow-800',
-    DIPLOMACY: 'from-indigo-600 to-indigo-800',
-    CUSTOM: 'from-gray-600 to-gray-800'
+    CONSTRUCTION: 'from-amber-600 to-amber-800',
+    DIPLOMACY: 'from-violet-600 to-violet-800',
+    ESPIONAGE: 'from-gray-600 to-gray-800',
+    TRADE: 'from-green-600 to-green-800',
+    NAVAL_PATROL: 'from-blue-600 to-blue-800',
+    AIR_MISSION: 'from-cyan-600 to-cyan-800',
+    FORTIFICATION: 'from-yellow-600 to-yellow-800',
+    CUSTOM: 'from-slate-600 to-slate-800'
   };
   
   const statusOpacity = {
-    PENDING: 'opacity-60',
+    PENDING: 'opacity-70',
     IN_PROGRESS: 'opacity-100',
-    COMPLETED: 'opacity-80',
+    COMPLETED: 'opacity-85',
     CANCELLED: 'opacity-40'
   };
   
-  return `bg-gradient-to-r ${baseColors[type] || baseColors.CUSTOM} ${statusOpacity[status]}`;
+  // If it's a unit production task and we have the unit, use unit-specific colors
+  let colorGradient;
+  if (type === TaskType.UNIT_PRODUCTION && unitId && GAME_UNITS[unitId]) {
+    const unit = GAME_UNITS[unitId];
+    colorGradient = unitColors[unit.type] || baseColors.UNIT_PRODUCTION;
+  } else {
+    colorGradient = baseColors[type] || baseColors.CUSTOM;
+  }
+  
+  return `bg-gradient-to-r ${colorGradient} ${statusOpacity[status]}`;
 };
 
 export const TaskBar: React.FC<TaskBarProps> = ({ task, left, width, players = [], onClick }) => {
-  const color = getTaskColor(task.type, task.status);
-  
+  const color = getTaskColor(task);
   const assignedPlayers = players.filter(p => task.assignedPlayers.includes(p.id));
+  
+  // Enhanced tooltip with unit data
+  const getTooltipText = () => {
+    let tooltip = `${task.name}\n${task.description || ''}`;
+    
+    // Add unit-specific information
+    if (task.unitId && GAME_UNITS[task.unitId]) {
+      const unit = GAME_UNITS[task.unitId];
+      tooltip += `\n\n🏭 Unit Details:`;
+      tooltip += `\n• Type: ${unit.type.replace('_', ' ')}`;
+      tooltip += `\n• Build Time: ${unit.buildTime} minutes`;
+      if (unit.resources.manpower) tooltip += `\n• Manpower: ${unit.resources.manpower.toLocaleString()}`;
+      if (unit.resources.money) tooltip += `\n• Money: $${unit.resources.money.toLocaleString()}`;
+      if (unit.resources.oil) tooltip += `\n• Oil: ${unit.resources.oil.toLocaleString()}`;
+      if (unit.resources.metal) tooltip += `\n• Metal: ${unit.resources.metal.toLocaleString()}`;
+      if (unit.resources.rareMetals) tooltip += `\n• Rare Metals: ${unit.resources.rareMetals.toLocaleString()}`;
+    }
+    
+    tooltip += `\n\n👥 Assigned: ${assignedPlayers.map(p => p.name).join(', ') || 'Unassigned'}`;
+    tooltip += `\n📋 Status: ${task.status.replace('_', ' ')}`;
+    tooltip += `\n⭐ Priority: ${task.priority}/3`;
+    
+    return tooltip;
+  };
+  
+  // Format resource costs for display
+  const getResourceSummary = () => {
+    if (!task.unitId || !GAME_UNITS[task.unitId]) return null;
+    
+    const unit = GAME_UNITS[task.unitId];
+    const resources = [];
+    
+    if (unit.resources.money) resources.push(`💰${(unit.resources.money / 1000).toFixed(0)}k`);
+    if (unit.resources.manpower) resources.push(`👤${(unit.resources.manpower / 1000).toFixed(0)}k`);
+    if (unit.resources.oil) resources.push(`🛢️${(unit.resources.oil / 1000).toFixed(0)}k`);
+    if (unit.resources.metal) resources.push(`⚙️${(unit.resources.metal / 1000).toFixed(0)}k`);
+    if (unit.resources.rareMetals) resources.push(`💎${(unit.resources.rareMetals / 1000).toFixed(0)}k`);
+    
+    return resources.slice(0, 2).join(' '); // Show only first 2 resources to save space
+  };
+  
+  const resourceSummary = getResourceSummary();
   
   return (
     <div
-      className={`absolute h-8 top-2 ${color} rounded cursor-pointer hover:scale-105 transition-all flex items-center justify-between px-2 text-white text-xs font-bebas shadow-lg border border-white/20`}
+      className={`absolute h-8 md:h-8 top-1 md:top-2 ${color} rounded cursor-pointer hover:scale-105 transition-all flex items-center justify-between px-1 md:px-2 text-white text-xs font-bebas shadow-lg border border-white/20 group touch-manipulation`}
       style={{ left: `${left}%`, width: `${width}%` }}
       onClick={onClick}
-      title={`${task.name}\n${task.description || ''}\nAssigned to: ${assignedPlayers.map(p => p.name).join(', ') || 'Unassigned'}`}
+      title={getTooltipText()}
     >
       <span className="truncate flex-1">{task.name}</span>
+      
+      {/* Resource summary - visible on hover for unit production tasks */}
+      {resourceSummary && width > 15 && (
+        <div className="text-[8px] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity ml-1 hidden group-hover:block">
+          {resourceSummary}
+        </div>
+      )}
+      
       {assignedPlayers.length > 0 && (
         <div className="flex gap-1 ml-2">
           {assignedPlayers.slice(0, 3).map((player) => (

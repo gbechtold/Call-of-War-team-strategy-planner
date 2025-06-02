@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { type Task, TaskType, TaskStatus } from '../../types';
 import { useStrategyStore } from '../../store/useStrategyStore';
 import { format } from 'date-fns';
+import { getCountryFlag } from '../../utils/countryFlags';
 
 interface TaskFormProps {
   task?: Task;
   strategyId: string;
   onSubmit: (task: Omit<Task, 'id'>) => void;
   onCancel: () => void;
+  onDelete?: () => void;
 }
 
-export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, onCancel }) => {
+export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, onDelete }) => {
   const { players, tasks } = useStrategyStore();
   const availableTasks = tasks.filter(t => t.strategyId === strategyId && t.id !== task?.id);
   
@@ -48,6 +50,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
       [TaskType.DEFENSE]: 'Combat',
       [TaskType.CONSTRUCTION]: 'Construction',
       [TaskType.DIPLOMACY]: 'Diplomacy',
+      [TaskType.ESPIONAGE]: 'Intelligence',
+      [TaskType.TRADE]: 'Diplomacy',
+      [TaskType.NAVAL_PATROL]: 'Naval Operations',
+      [TaskType.AIR_MISSION]: 'Air Operations',
+      [TaskType.FORTIFICATION]: 'Construction',
       [TaskType.CUSTOM]: 'Other',
     };
     return categoryMap[type];
@@ -183,7 +190,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
                   className="w-3 h-3 rounded-full border border-white/50"
                   style={{ backgroundColor: player.color }}
                 />
-                <span className="text-sm text-gray-300">{player.name} ({player.nation})</span>
+                <span className="text-sm text-gray-300 flex items-center gap-1">
+                  {player.name}
+                  <span className="text-base">{getCountryFlag(player.nation)}</span>
+                </span>
               </label>
             ))}
           </div>
@@ -222,17 +232,19 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, strategyId, onSubmit, 
         </div>
       )}
 
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border-2 border-cod-accent/50 rounded-md text-sm font-bebas text-cod-accent bg-transparent hover:bg-cod-accent/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cod-accent transition-colors"
-        >
-          Cancel
-        </button>
+      <div className="flex justify-between pt-4">
+        {task && onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="px-4 py-2 border-2 border-red-500/50 rounded-md text-sm font-bebas text-red-500 bg-transparent hover:bg-red-500/10 transition-colors"
+          >
+            Delete Task
+          </button>
+        )}
         <button
           type="submit"
-          className="px-4 py-2 border-2 border-transparent rounded-md text-sm font-bebas text-cod-primary bg-cod-accent hover:bg-cod-accent/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cod-accent transition-colors"
+          className="px-6 py-2 border-2 border-transparent rounded-md text-sm font-bebas text-cod-primary bg-cod-accent hover:bg-cod-accent/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cod-accent transition-colors ml-auto"
         >
           {task ? 'Update Task' : 'Create Task'}
         </button>

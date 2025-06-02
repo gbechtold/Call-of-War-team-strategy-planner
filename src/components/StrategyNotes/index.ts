@@ -1,0 +1,1 @@
+export { StrategyNotes } from './StrategyNotes';

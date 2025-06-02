@@ -73,6 +73,11 @@ export const TaskType = {
   DEFENSE: 'DEFENSE',
   CONSTRUCTION: 'CONSTRUCTION',
   DIPLOMACY: 'DIPLOMACY',
+  ESPIONAGE: 'ESPIONAGE',
+  TRADE: 'TRADE',
+  NAVAL_PATROL: 'NAVAL_PATROL',
+  AIR_MISSION: 'AIR_MISSION',
+  FORTIFICATION: 'FORTIFICATION',
   CUSTOM: 'CUSTOM'
 } as const;
 
@@ -114,6 +119,7 @@ export interface Strategy {
   createdAt: Date;
   updatedAt: Date;
   version?: string;
+  notes?: string;
 }
 
 export interface GanttRow {

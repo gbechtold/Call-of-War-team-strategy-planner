@@ -1,27 +1,45 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { DndContext, type DragEndEvent, DragOverlay, MouseSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
 import { type Task, type Unit } from '../../types';
-import { format, addDays, differenceInDays } from 'date-fns';
+import { format, addDays, differenceInDays, isSameDay } from 'date-fns';
 import { DraggableTaskBar } from './DraggableTaskBar';
 import { TaskBar } from './TaskBar';
 import { TaskDependencies } from '../TaskDependencies/TaskDependencies';
 import { useStrategyStore } from '../../store/useStrategyStore';
+import { getCountryFlag } from '../../utils/countryFlags';
+
+interface Milestone {
+  id: string;
+  name: string;
+  description: string;
+  date: Date;
+  color: string;
+  strategyId: string;
+}
 
 interface GanttChartProps {
   tasks: Task[];
   startDate: Date;
   endDate: Date;
   onTaskClick?: (task: Task) => void;
-  onTaskMove?: (taskId: string, newStartDate: Date, newEndDate: Date) => void;
+  onTaskMove?: (taskId: string, newStartDate: Date, newEndDate: Date, newCategory?: string) => void;
   onUnitDrop?: (unit: Unit, dropDate: Date) => void;
+  onCategoryRename?: (oldCategory: string, newCategory: string) => void;
 }
 
 interface DroppableTimelineProps {
   date: Date;
   children: React.ReactNode;
+  columnWidth: number;
 }
 
-const DroppableTimeline: React.FC<DroppableTimelineProps> = ({ date, children }) => {
+interface DroppableTaskRowProps {
+  taskId: string;
+  category: string;
+  children: React.ReactNode;
+}
+
+const DroppableTimeline: React.FC<DroppableTimelineProps> = ({ date, children, columnWidth }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `timeline-${date.toISOString()}`,
     data: { date }
@@ -30,7 +48,24 @@ const DroppableTimeline: React.FC<DroppableTimelineProps> = ({ date, children })
   return (
     <div
       ref={setNodeRef}
-      className={`h-full min-w-[40px] ${isOver ? 'bg-cod-accent/20' : ''} transition-colors`}
+      className={`h-full flex-shrink-0 ${isOver ? 'bg-cod-accent/20' : ''} transition-colors`}
+      style={{ minWidth: `${columnWidth}px` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+const DroppableTaskRow: React.FC<DroppableTaskRowProps> = ({ taskId, category, children }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `task-row-${taskId}`,
+    data: { taskId, category, type: 'task-row' }
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`relative ${isOver ? 'bg-cod-accent/10 ring-2 ring-cod-accent/30' : ''} transition-all`}
     >
       {children}
     </div>
@@ -43,24 +78,79 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   endDate,
   onTaskClick,
   onTaskMove,
-  onUnitDrop
+  onUnitDrop,
+  onCategoryRename
 }) => {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [draggedUnit, setDraggedUnit] = React.useState<Unit | null>(null);
-  const [timelineOffset, setTimelineOffset] = useState(0);
+  const [windowWidth, setWindowWidth] = React.useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [editingCategory, setEditingCategory] = React.useState<string | null>(null);
+  const [categoryNewName, setCategoryNewName] = React.useState<string>('');
+  const [milestones, setMilestones] = React.useState<Milestone[]>([]);
   const timelineRef = useRef<HTMLDivElement>(null);
   
-  // Extended timeline - show 60 days total (30 days into future from end date)
-  const extendedEndDate = addDays(endDate, 30);
-  const totalDays = differenceInDays(extendedEndDate, startDate) + 1;
-  const visibleDays = Math.min(14, totalDays); // Show 2 weeks at a time
+  // Listen for window resize to update column width
+  React.useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
-  const { players } = useStrategyStore();
+  // Extended timeline - show 7 days into future from end date (reduced from 30)
+  const extendedEndDate = addDays(endDate, 7);
+  const totalDays = differenceInDays(extendedEndDate, startDate) + 1;
+  
+  // Responsive column width - mobile-friendly sizing
+  const getColumnWidth = () => {
+    const isMobile = windowWidth < 768;
+    const sidebarWidth = isMobile ? 0 : 400; // No sidebar on mobile
+    const containerWidth = windowWidth - sidebarWidth - (isMobile ? 32 : 48); // Account for padding
+    
+    // Mobile: wider columns for touch, Desktop: optimized width
+    const minWidth = isMobile ? 60 : 40;
+    const maxWidth = isMobile ? 120 : 80;
+    const calculatedWidth = Math.max(minWidth, Math.min(maxWidth, containerWidth / totalDays));
+    return Math.floor(calculatedWidth);
+  };
+  
+  const columnWidth = getColumnWidth();
+  
+  const { players, currentStrategyId, strategies } = useStrategyStore();
+  const currentStrategy = strategies.find(s => s.id === currentStrategyId);
+  
+  // Load milestones for current strategy
+  React.useEffect(() => {
+    if (!currentStrategy) {
+      setMilestones([]);
+      return;
+    }
+    
+    const storageKey = `milestones-${currentStrategy.id}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const withDates = parsed.map((m: any) => ({
+          ...m,
+          date: new Date(m.date)
+        }));
+        setMilestones(withDates);
+      } catch (error) {
+        console.error('Error loading milestones:', error);
+        setMilestones([]);
+      }
+    } else {
+      setMilestones([]);
+    }
+  }, [currentStrategy]);
   
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     })
   );
@@ -90,7 +180,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     }
     
     // Handle task move
-    if (!active || !delta || !onTaskMove || active.data.current?.type === 'unit') {
+    if (!active || !onTaskMove || active.data.current?.type === 'unit') {
       setActiveId(null);
       setDraggedUnit(null);
       return;
@@ -102,68 +192,165 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       return;
     }
     
-    // Calculate days moved based on drag distance and current timeline scale
-    const dayWidth = (timelineRef.current?.scrollWidth || 800) / totalDays;
-    const daysMoved = Math.round(delta.x / dayWidth);
+    let newStartDate = new Date(task.startDate);
+    let newEndDate = new Date(task.endDate);
+    let newCategory = task.category;
     
-    const newStartDate = addDays(new Date(task.startDate), daysMoved);
-    const newEndDate = addDays(new Date(task.endDate), daysMoved);
+    // Check if dropped on a task row (category change)
+    if (over?.data.current?.type === 'task-row') {
+      const targetCategory = over.data.current.category;
+      // Only allow moving within the same category type for now
+      if (targetCategory && targetCategory === task.category) {
+        newCategory = targetCategory;
+      }
+    }
+    
+    // Calculate time movement if there was horizontal drag
+    if (delta && (Math.abs(delta.x) > 5 || Math.abs(delta.y) > 5)) {
+      const dayWidth = columnWidth;
+      const daysMoved = Math.round(delta.x / dayWidth);
+      
+      newStartDate = addDays(new Date(task.startDate), daysMoved);
+      newEndDate = addDays(new Date(task.endDate), daysMoved);
+    }
     
     // Allow tasks to be scheduled anywhere in the extended timeline
     if (newStartDate >= startDate && newEndDate <= extendedEndDate) {
-      onTaskMove(task.id, newStartDate, newEndDate);
+      onTaskMove(task.id, newStartDate, newEndDate, newCategory !== task.category ? newCategory : undefined);
     }
     
     setActiveId(null);
     setDraggedUnit(null);
   };
-  
-  const handleTimelineScroll = (direction: 'left' | 'right') => {
-    const scrollAmount = 7; // Scroll by 1 week
-    const maxOffset = Math.max(0, totalDays - visibleDays);
-    
-    if (direction === 'left') {
-      setTimelineOffset(Math.max(0, timelineOffset - scrollAmount));
-    } else {
-      setTimelineOffset(Math.min(maxOffset, timelineOffset + scrollAmount));
+
+  const handleCategoryClick = (category: string) => {
+    setEditingCategory(category);
+    setCategoryNewName(category);
+  };
+
+  const handleCategoryRename = (oldCategory: string) => {
+    if (categoryNewName.trim() && categoryNewName !== oldCategory && onCategoryRename) {
+      onCategoryRename(oldCategory, categoryNewName.trim());
+    }
+    setEditingCategory(null);
+    setCategoryNewName('');
+  };
+
+  const handleCategoryKeyDown = (e: React.KeyboardEvent, oldCategory: string) => {
+    if (e.key === 'Enter') {
+      handleCategoryRename(oldCategory);
+    } else if (e.key === 'Escape') {
+      setEditingCategory(null);
+      setCategoryNewName('');
     }
   };
   
+  
   const renderTimelineHeader = () => {
     const headers = [];
-    const visibleStartDate = addDays(startDate, timelineOffset);
     
-    // Create day headers
-    for (let i = 0; i < visibleDays; i++) {
-      const currentDate = addDays(visibleStartDate, i);
+    // Create day headers for all days
+    for (let i = 0; i < totalDays; i++) {
+      const currentDate = addDays(startDate, i);
+      
+      // Find milestone for this date
+      const dayMilestone = milestones.find(m => isSameDay(m.date, currentDate));
+      
       headers.push(
-        <div key={i} className="min-w-[40px] text-center text-xs border-r border-cod-accent/20 p-1">
-          <div className="font-bebas text-cod-accent text-[10px]">{format(currentDate, 'EEE')}</div>
-          <div className="text-gray-400 text-[10px]">{format(currentDate, 'd')}</div>
-          <div className="text-gray-500 text-[8px]">{format(currentDate, 'MMM')}</div>
+        <div 
+          key={i} 
+          className={`flex-shrink-0 text-center text-xs border-r border-cod-accent/20 p-1 relative`}
+          style={{ 
+            minWidth: `${columnWidth}px`,
+            backgroundColor: dayMilestone ? `${dayMilestone.color}25` : undefined,
+            backgroundImage: dayMilestone ? `linear-gradient(180deg, ${dayMilestone.color}15 0%, ${dayMilestone.color}35 100%)` : undefined
+          }}
+        >
+          {/* Enhanced milestone indicator at top if milestone exists */}
+          {dayMilestone && (
+            <div 
+              className="absolute top-0 left-0 right-0 h-2 rounded-t"
+              style={{ backgroundColor: dayMilestone.color }}
+              title={`Milestone: ${dayMilestone.name}`}
+            />
+          )}
+          <div className={`font-bebas text-[10px] ${dayMilestone ? 'text-white font-bold' : 'text-cod-accent'}`}>
+            {format(currentDate, 'EEE')}
+          </div>
+          <div className={`text-[10px] ${dayMilestone ? 'text-white font-bold' : 'text-gray-400'}`}>
+            {format(currentDate, 'd')}
+          </div>
+          <div className={`text-[8px] ${dayMilestone ? 'text-white/80' : 'text-gray-500'}`}>
+            {format(currentDate, 'MMM')}
+          </div>
+          {/* Enhanced milestone flag indicator if milestone exists */}
+          {dayMilestone && (
+            <div className="text-[10px] mt-1 animate-pulse" style={{ color: dayMilestone.color }}>
+              🏁
+            </div>
+          )}
         </div>
       );
     }
     
     return (
-      <div className="flex">
-        <button
-          onClick={() => handleTimelineScroll('left')}
-          disabled={timelineOffset === 0}
-          className="w-8 bg-cod-primary border-r border-cod-accent/20 text-cod-accent hover:bg-cod-accent/10 disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+      <div className="flex" style={{ minWidth: `${totalDays * columnWidth}px` }}>
+        {headers}
+      </div>
+    );
+  };
+  
+  const renderPlayerFlagsHeader = () => {
+    const flagHeaders = [];
+    
+    // Create flag headers for all days
+    for (let i = 0; i < totalDays; i++) {
+      const currentDate = addDays(startDate, i);
+      
+      // Find milestone for this date
+      const dayMilestone = milestones.find(m => isSameDay(m.date, currentDate));
+      
+      // Find players with tasks scheduled for this day
+      const playersForDay = new Set<string>();
+      tasks.forEach(task => {
+        const taskStart = new Date(task.startDate);
+        const taskEnd = new Date(task.endDate);
+        if (currentDate >= taskStart && currentDate <= taskEnd) {
+          task.assignedPlayers.forEach(playerId => {
+            const player = players.find(p => p.id === playerId);
+            if (player) {
+              playersForDay.add(player.nation);
+            }
+          });
+        }
+      });
+      
+      const uniqueFlags = Array.from(playersForDay).map(nation => getCountryFlag(nation));
+      
+      flagHeaders.push(
+        <div 
+          key={i} 
+          className="flex-shrink-0 text-center border-r border-cod-accent/20 p-1 h-8 flex items-center justify-center gap-1" 
+          style={{ 
+            minWidth: `${columnWidth}px`,
+            backgroundColor: dayMilestone ? `${dayMilestone.color}20` : undefined
+          }}
         >
-          ‹
-        </button>
-        <div className="flex-1 flex">
-          {headers}
+          {uniqueFlags.slice(0, 3).map((flag, index) => (
+            <span key={index} className="text-[10px]" title="Nations active this day">
+              {flag}
+            </span>
+          ))}
+          {uniqueFlags.length > 3 && (
+            <span className="text-[8px] text-gray-400">+{uniqueFlags.length - 3}</span>
+          )}
         </div>
-        <button
-          onClick={() => handleTimelineScroll('right')}
-          disabled={timelineOffset >= totalDays - visibleDays}
-          className="w-8 bg-cod-primary border-l border-cod-accent/20 text-cod-accent hover:bg-cod-accent/10 disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-        >
-          ›
-        </button>
+      );
+    }
+    
+    return (
+      <div className="flex bg-cod-primary/40" style={{ minWidth: `${totalDays * columnWidth}px` }}>
+        {flagHeaders}
       </div>
     );
   };
@@ -172,23 +359,22 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     const taskStart = new Date(task.startDate);
     const taskEnd = new Date(task.endDate);
     
-    // Calculate position relative to the visible timeline
-    const visibleStartDate = addDays(startDate, timelineOffset);
-    const startOffset = differenceInDays(taskStart, visibleStartDate);
-    const endOffset = differenceInDays(taskEnd, visibleStartDate) + 1;
+    // Calculate position relative to the full timeline
+    const startOffset = differenceInDays(taskStart, startDate);
+    const endOffset = differenceInDays(taskEnd, startDate) + 1;
     
-    // Only show tasks that are visible in current timeline window
-    if (endOffset < 0 || startOffset >= visibleDays) {
+    // Only show tasks that are within the timeline bounds
+    if (endOffset < 0 || startOffset >= totalDays) {
       return null; // Task not visible
     }
     
     const clampedStartOffset = Math.max(0, startOffset);
-    const clampedEndOffset = Math.min(visibleDays, endOffset);
+    const clampedEndOffset = Math.min(totalDays, endOffset);
     const duration = clampedEndOffset - clampedStartOffset;
     
     return {
-      left: (clampedStartOffset / visibleDays) * 100,
-      width: (duration / visibleDays) * 100
+      left: (clampedStartOffset / totalDays) * 100,
+      width: (duration / totalDays) * 100
     };
   };
   
@@ -201,11 +387,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   
   const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
   
-  // Create timeline days for drop zones (only visible days)
+  // Create timeline days for drop zones (all days)
   const timelineDays: Date[] = [];
-  const visibleStartDate = addDays(startDate, timelineOffset);
-  for (let i = 0; i < visibleDays; i++) {
-    timelineDays.push(addDays(visibleStartDate, i));
+  for (let i = 0; i < totalDays; i++) {
+    timelineDays.push(addDays(startDate, i));
   }
   
   // Get all visible tasks for dependency visualization
@@ -217,15 +402,36 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="bg-cod-secondary rounded-lg shadow-2xl overflow-hidden border-2 border-cod-accent/20">
-        <div className="flex">
-          <div className="w-40 bg-cod-primary">
-            <div className="h-16 border-b border-cod-accent/30 p-2 font-bebas text-cod-accent flex items-end text-sm">
+      <div className="bg-cod-secondary rounded-lg shadow-2xl border-2 border-cod-accent/20 max-h-[500px] md:max-h-[600px] flex flex-col">
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-32 md:w-40 bg-cod-primary flex-shrink-0 overflow-y-auto">
+            <div className="h-24 border-b border-cod-accent/30 p-1 md:p-2 font-bebas text-cod-accent flex items-end text-xs md:text-sm">
               Categories
             </div>
             {Object.keys(groupedTasks).map(category => (
               <div key={category} className="border-b border-cod-accent/30">
-                <div className="h-6 p-1 font-bebas bg-cod-primary/80 text-cod-accent text-xs">{category}</div>
+                <div className="h-6 p-1 font-bebas bg-cod-primary/80 text-cod-accent text-xs">
+                  {editingCategory === category ? (
+                    <input
+                      type="text"
+                      value={categoryNewName}
+                      onChange={(e) => setCategoryNewName(e.target.value)}
+                      onBlur={() => handleCategoryRename(category)}
+                      onKeyDown={(e) => handleCategoryKeyDown(e, category)}
+                      className="w-full bg-transparent border-b border-cod-accent outline-none text-xs"
+                      autoFocus
+                    />
+                  ) : (
+                    <div
+                      className="cursor-pointer hover:text-cod-accent/70 transition-colors flex items-center gap-1"
+                      onClick={() => handleCategoryClick(category)}
+                      title="Click to rename category"
+                    >
+                      {category}
+                      <span className="opacity-30 text-[8px]">✏️</span>
+                    </div>
+                  )}
+                </div>
                 {groupedTasks[category].map(task => (
                   <div key={task.id} className="h-10 border-b border-cod-accent/20 px-2 py-1 text-xs truncate flex items-center text-gray-300 hover:bg-cod-primary/50 transition-colors">
                     {task.name}
@@ -235,45 +441,95 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             ))}
           </div>
           
-          <div className="flex-1" ref={timelineRef}>
-            <div className="h-16 border-b border-cod-accent/30 bg-cod-primary">
-              {renderTimelineHeader()}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto custom-scrollbar" ref={timelineRef}>
+            <div className="h-24 border-b border-cod-accent/30 bg-cod-primary">
+              <div className="h-16 border-b border-cod-accent/20">
+                {renderTimelineHeader()}
+              </div>
+              {renderPlayerFlagsHeader()}
             </div>
             
             {Object.keys(groupedTasks).map(category => (
               <div key={category} className="border-b border-cod-accent/30">
-                <div className="h-6 bg-cod-primary/60"></div>
+                <div className="h-6 bg-cod-primary/60 relative" style={{ minWidth: `${totalDays * columnWidth}px` }}>
+                  {/* Milestone indicators for category header */}
+                  <div className="absolute inset-0 flex">
+                    {timelineDays.map((day, index) => {
+                      const dayMilestone = milestones.find(m => isSameDay(m.date, day));
+                      return (
+                        <div key={index} className="border-r border-cod-accent/10 relative" style={{ minWidth: `${columnWidth}px` }}>
+                          {dayMilestone && (
+                            <>
+                              <div 
+                                className="absolute bottom-0 left-0 right-0 h-1 opacity-40"
+                                style={{ backgroundColor: dayMilestone.color }}
+                              />
+                              <div 
+                                className="absolute inset-0 opacity-10"
+                                style={{ backgroundColor: dayMilestone.color }}
+                              />
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
                 {groupedTasks[category].map(task => {
                   const position = calculateTaskPosition(task);
                   if (!position) return null; // Task not visible
                   
                   return (
-                    <div key={task.id} className="h-10 border-b border-cod-accent/20 relative">
-                      <div className="absolute inset-0 flex">
-                        {timelineDays.map((day, index) => (
-                          <DroppableTimeline key={index} date={day}>
-                            <div className="w-full h-full border-r border-cod-accent/10" />
-                          </DroppableTimeline>
-                        ))}
-                      </div>
-                      {onTaskMove ? (
-                        <DraggableTaskBar
-                          task={task}
-                          left={position.left}
-                          width={position.width}
-                          players={players}
-                          onClick={() => onTaskClick?.(task)}
-                        />
-                      ) : (
-                        <TaskBar
-                          task={task}
-                          left={position.left}
-                          width={position.width}
+                    <DroppableTaskRow key={task.id} taskId={task.id} category={category}>
+                      <div className="h-10 border-b border-cod-accent/20 relative" style={{ minWidth: `${totalDays * columnWidth}px` }}>
+                        <div className="absolute inset-0 flex">
+                          {timelineDays.map((day, index) => {
+                            // Find milestone for this date
+                            const dayMilestone = milestones.find(m => isSameDay(m.date, day));
+                            
+                            return (
+                              <DroppableTimeline key={index} date={day} columnWidth={columnWidth}>
+                                <div className="w-full h-full border-r border-cod-accent/10 relative">
+                                  {/* Milestone background coloring */}
+                                  {dayMilestone && (
+                                    <>
+                                      {/* Full background tint */}
+                                      <div 
+                                        className="absolute inset-0 opacity-8"
+                                        style={{ backgroundColor: dayMilestone.color }}
+                                      />
+                                      {/* Bottom accent line */}
+                                      <div 
+                                        className="absolute bottom-0 left-0 right-0 h-1 opacity-40"
+                                        style={{ backgroundColor: dayMilestone.color }}
+                                      />
+                                    </>
+                                  )}
+                                </div>
+                              </DroppableTimeline>
+                            );
+                          })}
+                        </div>
+                        {onTaskMove ? (
+                          <DraggableTaskBar
+                            task={task}
+                            left={position.left}
+                            width={position.width}
+                            players={players}
+                            onClick={() => onTaskClick?.(task)}
+                          />
+                        ) : (
+                          <TaskBar
+                            task={task}
+                            left={position.left}
+                            width={position.width}
                           players={players}
                           onClick={() => onTaskClick?.(task)}
                         />
                       )}
-                    </div>
+                      </div>
+                    </DroppableTaskRow>
                   );
                 })}
               </div>
@@ -285,6 +541,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               visibleTasks={visibleTasks}
               calculateTaskPosition={calculateTaskPosition}
             />
+            </div>
           </div>
         </div>
       </div>

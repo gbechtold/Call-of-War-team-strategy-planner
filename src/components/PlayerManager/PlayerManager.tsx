@@ -1,15 +1,35 @@
 import React, { useState } from 'react';
 import { type Player, PlayerRole } from '../../types';
 import { useStrategyStore } from '../../store/useStrategyStore';
-import { FaPlus, FaEdit, FaTrash, FaCrown, FaStar, FaUser } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaUser } from 'react-icons/fa';
+import { getCountryFlag } from '../../utils/countryFlags';
+
+const getRoleIcon = (role: PlayerRole): string => {
+  switch (role) {
+    case PlayerRole.COMMANDER: return '⭐';
+    case PlayerRole.OFFICER: return '🎖️';
+    case PlayerRole.MEMBER: return '🪖';
+    default: return '🪖';
+  }
+};
+
+const getRoleTitle = (role: PlayerRole): string => {
+  switch (role) {
+    case PlayerRole.COMMANDER: return 'Commander';
+    case PlayerRole.OFFICER: return 'Officer';
+    case PlayerRole.MEMBER: return 'Member';
+    default: return 'Member';
+  }
+};
 
 interface PlayerFormProps {
   player?: Player;
   onSubmit: (player: Omit<Player, 'id'>) => void;
   onCancel: () => void;
+  onDelete?: () => void;
 }
 
-const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSubmit, onCancel }) => {
+const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSubmit, onDelete }) => {
   const [formData, setFormData] = useState({
     name: player?.name || '',
     nation: player?.nation || '',
@@ -23,16 +43,16 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSubmit, onCancel }) =
   };
 
   const predefinedColors = [
-    '#D4AF37', // Gold
-    '#FF6B6B', // Red
-    '#4ECDC4', // Teal
-    '#45B7D1', // Blue
-    '#96CEB4', // Green
-    '#FFEAA7', // Yellow
-    '#DDA0DD', // Plum
-    '#FFA07A', // Light Salmon
-    '#98D8C8', // Mint
-    '#F7DC6F', // Light Gold
+    '#D4AF37', // Military Gold (more muted than bright gold)
+    '#B22222', // Fire Brick Red (military red)
+    '#4682B4', // Steel Blue (naval blue)
+    '#556B2F', // Dark Olive Green (army green)
+    '#8B4513', // Saddle Brown (earth tone)
+    '#4B0082', // Indigo (royal purple)
+    '#DC143C', // Crimson (battle red)
+    '#2F4F4F', // Dark Slate Gray (tactical gray)
+    '#8FBC8F', // Dark Sea Green (field green)
+    '#CD853F', // Peru (desert tan)
   ];
 
   return (
@@ -93,37 +113,27 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSubmit, onCancel }) =
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border-2 border-cod-accent/50 rounded-md text-sm font-bebas text-cod-accent bg-transparent hover:bg-cod-accent/10 transition-colors"
-        >
-          Cancel
-        </button>
+      <div className="flex justify-between pt-4">
+        {player && onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="px-3 py-2 border-2 border-red-500/50 rounded-md text-sm font-bebas text-red-500 bg-transparent hover:bg-red-500/10 transition-colors flex items-center gap-1"
+          >
+            <FaTrash className="text-xs" /> Delete
+          </button>
+        )}
         <button
           type="submit"
-          className="px-4 py-2 border-2 border-transparent rounded-md text-sm font-bebas text-cod-primary bg-cod-accent hover:bg-cod-accent/90 transition-colors"
+          className="px-4 py-2 border-2 border-transparent rounded-md text-sm font-bebas text-cod-primary bg-cod-accent hover:bg-cod-accent/90 transition-colors ml-auto"
         >
-          {player ? 'Update Player' : 'Add Player'}
+          {player ? 'Update' : 'Add Player'}
         </button>
       </div>
     </form>
   );
 };
 
-const getRoleIcon = (role: PlayerRole) => {
-  switch (role) {
-    case PlayerRole.COMMANDER:
-      return <FaCrown className="text-yellow-400" />;
-    case PlayerRole.OFFICER:
-      return <FaStar className="text-blue-400" />;
-    case PlayerRole.MEMBER:
-      return <FaUser className="text-gray-400" />;
-    default:
-      return <FaUser className="text-gray-400" />;
-  }
-};
 
 export const PlayerManager: React.FC = () => {
   const { players, addPlayer, updatePlayer, removePlayer } = useStrategyStore();
@@ -179,13 +189,17 @@ export const PlayerManager: React.FC = () => {
             player={editingPlayer}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
+            onDelete={editingPlayer ? () => {
+              handleRemovePlayer(editingPlayer.id);
+              handleCancel();
+            } : undefined}
           />
         </div>
       )}
 
       <div className="space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
         {players.length === 0 ? (
-          <div className="text-center text-gray-400 py-4">
+          <div className="text-left text-gray-400 py-4">
             <FaUser className="mx-auto text-2xl mb-1 opacity-50" />
             <p className="font-bebas text-sm">No members</p>
             <p className="text-xs">Add players to coordinate</p>
@@ -194,7 +208,8 @@ export const PlayerManager: React.FC = () => {
           players.map((player) => (
             <div
               key={player.id}
-              className="flex items-center justify-between p-2 bg-cod-primary/30 rounded border border-cod-accent/20 hover:bg-cod-primary/50 transition-colors"
+              onClick={() => handleEditPlayer(player)}
+              className="flex items-center justify-between p-2 bg-cod-primary/30 rounded border border-cod-accent/20 hover:bg-cod-primary/50 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -205,28 +220,17 @@ export const PlayerManager: React.FC = () => {
                   {getRoleIcon(player.role)}
                   <div>
                     <div className="font-bebas text-cod-accent">{player.name}</div>
-                    <div className="text-xs text-gray-400">{player.nation}</div>
+                    <div className="text-xs text-gray-400 flex items-center gap-1">
+                      <span className="text-base">{getCountryFlag(player.nation)}</span>
+                      {player.nation}
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bebas text-gray-400 capitalize">
-                  {player.role.toLowerCase()}
-                </span>
-                <button
-                  onClick={() => handleEditPlayer(player)}
-                  className="p-1 text-cod-accent hover:text-cod-accent/70 transition-colors"
-                >
-                  <FaEdit />
-                </button>
-                <button
-                  onClick={() => handleRemovePlayer(player.id)}
-                  className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <FaTrash />
-                </button>
-              </div>
+              <span className="text-sm" title={getRoleTitle(player.role)}>
+                {getRoleIcon(player.role)}
+              </span>
             </div>
           ))
         )}
