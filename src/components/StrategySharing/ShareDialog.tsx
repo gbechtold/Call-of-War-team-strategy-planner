@@ -598,9 +598,11 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                               return;
                             }
                             
-                            // Create the imported strategy
+                            // Create the imported strategy with a new ID
+                            const newStrategyId = Math.random().toString(36).substr(2, 9);
                             const importedStrategy = {
                               ...decoded.strategy,
+                              id: newStrategyId,
                               name: `${decoded.strategy.name} (Imported)`,
                               createdAt: new Date(),
                               updatedAt: new Date(),
@@ -608,7 +610,12 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                               endDate: new Date(decoded.strategy.endDate)
                             };
                             
-                            createStrategy(importedStrategy);
+                            // Add strategy directly to the store
+                            const { strategies } = useStrategyStore.getState();
+                            useStrategyStore.setState({ 
+                              strategies: [...strategies, importedStrategy],
+                              currentStrategyId: newStrategyId 
+                            });
                             
                             // Import tasks with validation
                             if (decoded.tasks && Array.isArray(decoded.tasks)) {
@@ -616,7 +623,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                                 if (task && task.startDate && task.endDate) {
                                   createTask({
                                     ...task,
-                                    strategyId: importedStrategy.id,
+                                    strategyId: newStrategyId,
                                     startDate: new Date(task.startDate),
                                     endDate: new Date(task.endDate)
                                   });

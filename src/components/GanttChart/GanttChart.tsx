@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { DndContext, type DragEndEvent, DragOverlay, MouseSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
 import { type Task, type Unit } from '../../types';
 import { format, addDays, differenceInDays, isSameDay } from 'date-fns';
+import { FaPlus, FaMinus, FaUndo } from 'react-icons/fa';
 import { DraggableTaskBar } from './DraggableTaskBar';
 import { TaskBar } from './TaskBar';
 import { TaskDependencies } from '../TaskDependencies/TaskDependencies';
@@ -124,28 +125,50 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   
   // Load milestones for current strategy
   React.useEffect(() => {
-    if (!currentStrategy) {
-      setMilestones([]);
-      return;
-    }
-    
-    const storageKey = `milestones-${currentStrategy.id}`;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const withDates = parsed.map((m: any) => ({
-          ...m,
-          date: new Date(m.date)
-        }));
-        setMilestones(withDates);
-      } catch (error) {
-        console.error('Error loading milestones:', error);
+    const loadMilestones = () => {
+      if (!currentStrategy) {
+        setMilestones([]);
+        return;
+      }
+      
+      const storageKey = `milestones-${currentStrategy.id}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          const withDates = parsed.map((m: any) => ({
+            ...m,
+            date: new Date(m.date)
+          }));
+          setMilestones(withDates);
+        } catch (error) {
+          console.error('Error loading milestones:', error);
+          setMilestones([]);
+        }
+      } else {
         setMilestones([]);
       }
-    } else {
-      setMilestones([]);
-    }
+    };
+
+    loadMilestones();
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `milestones-${currentStrategy?.id}`) {
+        loadMilestones();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom event for same-window updates
+    const handleMilestonesUpdate = () => loadMilestones();
+    window.addEventListener('milestonesUpdated', handleMilestonesUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('milestonesUpdated', handleMilestonesUpdate);
+    };
   }, [currentStrategy]);
   
   const sensors = useSensors(
@@ -418,27 +441,28 @@ export const GanttChart: React.FC<GanttChartProps> = ({
             <span className="text-xs text-gray-400">Zoom:</span>
             <button
               onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
-              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors"
+              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors flex items-center"
               title="Zoom out"
             >
-              -
+              <FaMinus />
             </button>
             <span className="text-xs text-cod-accent font-mono w-12 text-center">
               {Math.round(zoomLevel * 100)}%
             </span>
             <button
               onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.25))}
-              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors"
+              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors flex items-center"
               title="Zoom in"
             >
-              +
+              <FaPlus />
             </button>
             <button
               onClick={() => setZoomLevel(1)}
-              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors ml-2"
+              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors ml-2 flex items-center gap-1"
               title="Reset zoom"
             >
-              Reset
+              <FaUndo className="text-[10px]" />
+              <span>Reset</span>
             </button>
           </div>
         </div>
