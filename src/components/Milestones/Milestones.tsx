@@ -160,7 +160,7 @@ export const Milestones: React.FC = () => {
   }, [strategy]);
 
   return (
-    <div className="bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20 w-64">
+    <div className="bg-cod-secondary/90 backdrop-blur-sm p-3 rounded-lg shadow-2xl border-2 border-cod-accent/20 w-52">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-bebas text-cod-accent flex items-center gap-2">
           <FaFlag /> Milestones

@@ -87,6 +87,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   const [editingCategory, setEditingCategory] = React.useState<string | null>(null);
   const [categoryNewName, setCategoryNewName] = React.useState<string>('');
   const [milestones, setMilestones] = React.useState<Milestone[]>([]);
+  const [zoomLevel, setZoomLevel] = React.useState<number>(1); // 1 = 100%, 0.5 = 50%, 2 = 200%
   const timelineRef = useRef<HTMLDivElement>(null);
   
   // Listen for window resize to update column width
@@ -116,7 +117,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     return Math.floor(calculatedWidth);
   };
   
-  const columnWidth = getColumnWidth();
+  const columnWidth = Math.floor(getColumnWidth() * zoomLevel);
   
   const { players, currentStrategyId, strategies } = useStrategyStore();
   const currentStrategy = strategies.find(s => s.id === currentStrategyId);
@@ -199,8 +200,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     // Check if dropped on a task row (category change)
     if (over?.data.current?.type === 'task-row') {
       const targetCategory = over.data.current.category;
-      // Only allow moving within the same category type for now
-      if (targetCategory && targetCategory === task.category) {
+      // Allow moving to any category
+      if (targetCategory) {
         newCategory = targetCategory;
       }
     }
@@ -410,6 +411,38 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       onDragEnd={handleDragEnd}
     >
       <div className="bg-cod-secondary rounded-lg shadow-2xl border-2 border-cod-accent/20 max-h-[500px] md:max-h-[600px] flex flex-col">
+        {/* Zoom Controls */}
+        <div className="flex items-center justify-between px-4 py-2 bg-cod-primary border-b border-cod-accent/30">
+          <div className="text-sm font-bebas text-cod-accent">Timeline View</div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Zoom:</span>
+            <button
+              onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
+              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors"
+              title="Zoom out"
+            >
+              -
+            </button>
+            <span className="text-xs text-cod-accent font-mono w-12 text-center">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button
+              onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.25))}
+              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors"
+              title="Zoom in"
+            >
+              +
+            </button>
+            <button
+              onClick={() => setZoomLevel(1)}
+              className="px-2 py-1 bg-cod-secondary text-cod-accent rounded text-xs hover:bg-cod-accent hover:text-cod-primary transition-colors ml-2"
+              title="Reset zoom"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+        
         <div className="flex flex-1 overflow-hidden">
           <div className="w-32 md:w-40 bg-cod-primary flex-shrink-0 overflow-y-auto">
             <div className="h-24 border-b border-cod-accent/30 p-1 md:p-2 font-bebas text-cod-accent flex items-end text-xs md:text-sm">
