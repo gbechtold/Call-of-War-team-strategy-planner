@@ -42,7 +42,7 @@ const DraggableUnit: React.FC<DraggableUnitProps> = ({ unit, onUnitClick }) => {
       >
         <div className="text-lg text-center mb-1">{unit.icon}</div>
         <div className="text-[10px] text-center text-cod-accent font-bebas leading-tight">{unit.name}</div>
-        <div className="text-[8px] text-center text-gray-400">{unit.buildTime}h</div>
+        <div className="text-[8px] text-center text-gray-400">{unit.buildTime >= 60 ? `${(unit.buildTime / 60).toFixed(1).replace('.0', '')}h` : `${unit.buildTime}m`}</div>
       </div>
       <button
         onClick={handleClick}
