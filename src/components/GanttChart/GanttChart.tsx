@@ -359,22 +359,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     const taskStart = new Date(task.startDate);
     const taskEnd = new Date(task.endDate);
     
-    // Calculate position relative to the full timeline
-    const startOffset = differenceInDays(taskStart, startDate);
-    const endOffset = differenceInDays(taskEnd, startDate) + 1;
+    // Calculate position with hour precision
+    const startTime = taskStart.getTime();
+    const endTime = taskEnd.getTime();
+    const timelineStartTime = startDate.getTime();
+    const timelineEndTime = extendedEndDate.getTime();
+    
+    // Calculate hours from timeline start
+    const startHours = (startTime - timelineStartTime) / (1000 * 60 * 60);
+    const endHours = (endTime - timelineStartTime) / (1000 * 60 * 60);
+    const totalHours = (timelineEndTime - timelineStartTime) / (1000 * 60 * 60);
     
     // Only show tasks that are within the timeline bounds
-    if (endOffset < 0 || startOffset >= totalDays) {
+    if (endHours < 0 || startHours >= totalHours) {
       return null; // Task not visible
     }
     
-    const clampedStartOffset = Math.max(0, startOffset);
-    const clampedEndOffset = Math.min(totalDays, endOffset);
-    const duration = clampedEndOffset - clampedStartOffset;
+    const clampedStartHours = Math.max(0, startHours);
+    const clampedEndHours = Math.min(totalHours, endHours);
+    const durationHours = clampedEndHours - clampedStartHours;
     
     return {
-      left: (clampedStartOffset / totalDays) * 100,
-      width: (duration / totalDays) * 100
+      left: (clampedStartHours / totalHours) * 100,
+      width: (durationHours / totalHours) * 100
     };
   };
   

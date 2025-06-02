@@ -17,6 +17,7 @@ export default {
       },
       fontFamily: {
         'military': ['Bebas Neue', 'sans-serif'],
+        'bebas': ['Bebas Neue', 'sans-serif'],
       }
     },
   },

@@ -375,7 +375,8 @@ function App() {
   
   const handleUnitDrop = (unit: Unit, dropDate: Date) => {
     const buildDuration = getUnitBuildDuration(unit);
-    const unitCategory = `${unit.type.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())} Production`;
+    // Use unit name as category to group similar units together
+    const unitCategory = `${unit.name} Production`;
     
     createTask({
       name: `Build ${unit.name}`,
@@ -396,15 +397,15 @@ function App() {
   const handleUnitClick = (unit: Unit) => {
     const buildDuration = getUnitBuildDuration(unit);
     
-    // Find the latest available spot for this unit type
-    const unitCategory = `${unit.type.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())} Production`;
+    // Use unit name as category to group similar units together
+    const unitCategory = `${unit.name} Production`;
     const categoryTasks = tasks.filter(task => 
       task.category === unitCategory && task.strategyId === strategy!.id
     ).sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
     
     // Start after the latest task in this category, or today if no tasks exist
     const latestEndDate = categoryTasks.length > 0 ? new Date(categoryTasks[0].endDate) : new Date();
-    const startDate = categoryTasks.length > 0 ? addDays(latestEndDate, 1) : new Date();
+    const startDate = categoryTasks.length > 0 ? latestEndDate : new Date();
     
     createTask({
       name: `Build ${unit.name}`,

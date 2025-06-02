@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useCurrentStrategy } from '../../hooks/useCurrentStrategy';
 import { useStrategyStore } from '../../store/useStrategyStore';
 import { FaShare, FaCopy, FaCheck, FaQrcode, FaEnvelope, FaDiscord, FaTelegram, FaWhatsapp, FaDownload, FaUpload, FaUsers, FaCrown, FaTimes, FaExternalLinkAlt } from 'react-icons/fa';
-import { encodeStrategy } from '../../utils/shareCode';
+import { encodeStrategy, decodeStrategy } from '../../utils/shareCode';
 
 interface ShareDialogProps {
   isOpen: boolean;
@@ -24,9 +24,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
   const [realTimeEnabled, setRealTimeEnabled] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen || !strategy) return null;
-
   const generateShareableContent = async () => {
+    if (!strategy) return;
     
     const strategyTasks = tasks.filter(task => task.strategyId === strategy.id);
     const strategyData = {
@@ -183,17 +182,19 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
   };
 
   React.useEffect(() => {
-    if (isOpen && !shareUrl) {
+    if (isOpen && strategy) {
       generateShareableContent();
     }
-  }, [isOpen]);
+  }, [isOpen, strategy?.id]);
+
+  if (!isOpen || !strategy) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
         
-        <div className="relative bg-cod-primary border-2 border-cod-accent rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-fadeIn">
+        <div className="relative z-10 bg-cod-primary border-2 border-cod-accent rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-cod-accent/30">
             <h2 className="text-2xl font-bebas text-cod-accent flex items-center gap-2">
@@ -207,7 +208,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
             </button>
           </div>
 
-          <div className="flex h-[70vh]">
+          <div className="flex flex-1 overflow-hidden">
             {/* Sidebar Navigation */}
             <div className="w-48 bg-cod-secondary/50 border-r border-cod-accent/20 p-4">
               <nav className="space-y-2">
@@ -581,9 +582,40 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                     <button
                       onClick={() => {
                         if (importCode.trim()) {
-                          // This would use the existing decode logic
-                          alert('Import from code functionality would be implemented here');
+                          const decoded = decodeStrategy(importCode.trim());
+                          if (!decoded) {
+                            alert('Invalid share code. Please check and try again.');
+                            return;
+                          }
+                          
+                          // Create the imported strategy
+                          const importedStrategy = {
+                            ...decoded.strategy,
+                            name: `${decoded.strategy.name} (Imported)`,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                          };
+                          
+                          createStrategy(importedStrategy);
+                          
+                          // Import tasks
+                          decoded.tasks.forEach((task: any) => {
+                            createTask({
+                              ...task,
+                              strategyId: importedStrategy.id,
+                              startDate: new Date(task.startDate),
+                              endDate: new Date(task.endDate)
+                            });
+                          });
+                          
+                          // Import players
+                          decoded.players.forEach((player: any) => {
+                            addPlayer(player);
+                          });
+                          
                           setImportCode('');
+                          alert('Strategy imported successfully!');
+                          onClose();
                         }
                       }}
                       disabled={!importCode.trim()}

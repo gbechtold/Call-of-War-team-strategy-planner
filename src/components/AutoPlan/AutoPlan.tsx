@@ -21,8 +21,8 @@ interface StrategyTemplate {
 
 const strategyTemplates: StrategyTemplate[] = [
   {
-    id: 'blitzkrieg',
-    name: 'Blitzkrieg',
+    id: 'rapid-assault',
+    name: 'Rapid Assault',
     description: 'Fast armor & air assault',
     icon: <FaRocket />,
     tasks: [
