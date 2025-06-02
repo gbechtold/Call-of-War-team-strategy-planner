@@ -9,6 +9,7 @@ import { ShareDialog } from './components/StrategySharing/ShareDialog';
 import { StrategyNotes } from './components/StrategyNotes';
 import { AutoPlan } from './components/AutoPlan';
 import { Milestones } from './components/Milestones';
+import { RevisionHistory } from './components/RevisionHistory';
 import { ShortcutTooltip } from './components/KeyboardShortcuts/ShortcutTooltip';
 import { ShortcutHelp } from './components/KeyboardShortcuts/ShortcutHelp';
 import { MobileSwipeHandler } from './components/SwipeNavigation/MobileSwipeHandler';
@@ -34,6 +35,7 @@ function App() {
   const [showNotes, setShowNotes] = useState(false);
   const [showAutoPlan, setShowAutoPlan] = useState(false);
   const [showMilestones, setShowMilestones] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [editingStrategyName, setEditingStrategyName] = useState(false);
   const [strategyName, setStrategyName] = useState('');
   const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
@@ -46,7 +48,8 @@ function App() {
     { id: 'players', name: 'Alliance', component: () => null, icon: '👥' },
     { id: 'notes', name: 'Notes', component: () => null, icon: '📝' },
     { id: 'autoplan', name: 'Auto-Plan', component: () => null, icon: '🚀' },
-    { id: 'milestones', name: 'Milestones', component: () => null, icon: '🏁' }
+    { id: 'milestones', name: 'Milestones', component: () => null, icon: '🏁' },
+    { id: 'history', name: 'History', component: () => null, icon: '📖' }
   ];
   
   const {
@@ -302,6 +305,13 @@ function App() {
       },
       category: 'Navigation'
     },
+    {
+      key: 'i',
+      altKey: true,
+      description: 'Toggle History Panel',
+      action: () => setShowHistory(!showHistory),
+      category: 'Navigation'
+    },
     // Quick Actions
     {
       key: 'e',
@@ -542,6 +552,14 @@ function App() {
                   <FaFlag /> Milestones
                 </button>
               </ShortcutTooltip>
+              <ShortcutTooltip shortcut={keyboardShortcuts.find(s => s.key === 'i' && s.altKey)}>
+                <button
+                  onClick={() => handlePanelToggle('history', () => setShowHistory(!showHistory))}
+                  className="flex items-center justify-center gap-1 px-3 py-2 md:px-2 md:py-1 bg-cod-secondary border-2 border-cod-accent text-cod-accent rounded-md hover:bg-cod-accent hover:text-cod-primary transition-all font-bebas text-sm md:text-xs"
+                >
+                  📖 History
+                </button>
+              </ShortcutTooltip>
               
               {/* Keyboard Shortcuts Help */}
               <ShortcutTooltip shortcut={keyboardShortcuts.find(s => s.key === '?')}>
@@ -577,7 +595,7 @@ function App() {
             {/* Desktop: Sidebar panels */}
             <div className={`
               lg:flex lg:flex-col lg:gap-3 lg:overflow-y-auto lg:max-h-full lg:flex-shrink-0
-              ${(isMobile && isAnyPanelOpen) || (!isMobile && (showUnitMenu || showPlayerManager || showNotes || showAutoPlan || showMilestones))
+              ${(isMobile && isAnyPanelOpen) || (!isMobile && (showUnitMenu || showPlayerManager || showNotes || showAutoPlan || showMilestones || showHistory))
                 ? 'fixed inset-0 z-40 bg-cod-secondary/95 backdrop-blur-sm lg:static lg:bg-transparent lg:backdrop-blur-none p-4 lg:p-0 overflow-y-auto'
                 : 'hidden lg:flex'
               }
@@ -603,6 +621,7 @@ function App() {
                       setShowNotes(false);
                       setShowAutoPlan(false);
                       setShowMilestones(false);
+                      setShowHistory(false);
                     }
                   }}
                   className="text-cod-accent hover:text-cod-accent/70 p-2"
@@ -639,6 +658,11 @@ function App() {
                       <Milestones />
                     </div>
                   )}
+                  {isPanelOpen('history') && (
+                    <div className="animate-fadeIn">
+                      <RevisionHistory />
+                    </div>
+                  )}
                 </>
               ) : (
                 /* Desktop: Show all panels simultaneously */
@@ -666,6 +690,11 @@ function App() {
                   {showMilestones && (
                     <div ref={milestonesRef} className="animate-fadeIn">
                       <Milestones />
+                    </div>
+                  )}
+                  {showHistory && (
+                    <div className="animate-fadeIn">
+                      <RevisionHistory />
                     </div>
                   )}
                 </>
