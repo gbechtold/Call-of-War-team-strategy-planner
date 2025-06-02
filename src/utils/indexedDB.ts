@@ -18,6 +18,22 @@ interface SyncSettings {
   autoSaveInterval: number; // in milliseconds
 }
 
+interface P2PSession {
+  roomCode: string;
+  strategyId: string;
+  hostId: string;
+  createdAt: Date;
+  lastActive: Date;
+  participants: P2PParticipant[];
+}
+
+interface P2PParticipant {
+  id: string;
+  username: string;
+  isHost: boolean;
+  joinedAt: Date;
+}
+
 class IndexedDBManager {
   private dbName = 'CallOfWarPlanner';
   private version = 1;
@@ -204,6 +220,69 @@ class IndexedDBManager {
     }
   }
 
+  // P2P Session operations
+  async saveP2PSession(session: P2PSession): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const transaction = this.db.transaction(['p2pSessions'], 'readwrite');
+    const store = transaction.objectStore('p2pSessions');
+    
+    await new Promise<void>((resolve, reject) => {
+      const request = store.put(session);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getP2PSession(roomCode: string): Promise<P2PSession | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const transaction = this.db.transaction(['p2pSessions'], 'readonly');
+    const store = transaction.objectStore('p2pSessions');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.get(roomCode);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAllP2PSessions(): Promise<P2PSession[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const transaction = this.db.transaction(['p2pSessions'], 'readonly');
+    const store = transaction.objectStore('p2pSessions');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async updateP2PSession(roomCode: string, updates: Partial<P2PSession>): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const currentSession = await this.getP2PSession(roomCode);
+    if (!currentSession) throw new Error('Session not found');
+
+    const updatedSession = { ...currentSession, ...updates };
+    await this.saveP2PSession(updatedSession);
+  }
+
+  async deleteP2PSession(roomCode: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const transaction = this.db.transaction(['p2pSessions'], 'readwrite');
+    const store = transaction.objectStore('p2pSessions');
+    
+    await new Promise<void>((resolve, reject) => {
+      const request = store.delete(roomCode);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async close(): Promise<void> {
     if (this.db) {
       this.db.close();
@@ -218,4 +297,4 @@ export const dbManager = new IndexedDBManager();
 // Initialize on module load
 dbManager.init().catch(console.error);
 
-export type { StrategyRevision, SyncSettings };
+export type { StrategyRevision, SyncSettings, P2PSession, P2PParticipant };
