@@ -244,6 +244,33 @@ export const useCollaboration = () => {
           if (message.payload.strategy && message.payload.strategy.id === strategy?.id) {
             updateStrategy(message.payload.strategy.id, message.payload.strategy);
             addRecentUpdate(`strategy-${message.payload.strategy.id}`);
+            
+            // Sync tasks if provided (e.g., during initial sync)
+            if (message.payload.tasks && Array.isArray(message.payload.tasks)) {
+              console.log('[Collaboration] Syncing tasks from strategy_update:', message.payload.tasks.length);
+              
+              // Clear existing tasks for this strategy to avoid duplicates
+              const existingTaskIds = tasks.filter(t => t.strategyId === strategy.id).map(t => t.id);
+              existingTaskIds.forEach(taskId => deleteTask(taskId));
+              
+              // Add all received tasks
+              message.payload.tasks.forEach((task: any) => {
+                const newTask = {
+                  ...task,
+                  startDate: new Date(task.startDate),
+                  endDate: new Date(task.endDate),
+                  createdAt: task.createdAt ? new Date(task.createdAt) : new Date(),
+                  updatedAt: task.updatedAt ? new Date(task.updatedAt) : new Date(),
+                };
+                console.log('[Collaboration] Creating synced task:', newTask.id, newTask.name);
+                
+                // Use store directly to preserve the task ID from host
+                const { createTask: storeCreateTask } = useStrategyStore.getState();
+                storeCreateTask(newTask);
+                
+                addRecentUpdate(`task-${newTask.id}`);
+              });
+            }
           }
           break;
 
@@ -275,8 +302,16 @@ export const useCollaboration = () => {
 
         case 'task_update':
           if (message.payload.taskId && message.payload.updates) {
-            updateTask(message.payload.taskId, message.payload.updates);
+            console.log('[Collaboration] Received task_update:', message.payload.taskId, message.payload.updates);
+            
+            // Convert date strings back to Date objects
+            const updates = { ...message.payload.updates };
+            if (updates.startDate) updates.startDate = new Date(updates.startDate);
+            if (updates.endDate) updates.endDate = new Date(updates.endDate);
+            
+            updateTask(message.payload.taskId, updates);
             addRecentUpdate(`task-${message.payload.taskId}`);
+            console.log('[Collaboration] Task updated locally:', message.payload.taskId);
           }
           break;
 

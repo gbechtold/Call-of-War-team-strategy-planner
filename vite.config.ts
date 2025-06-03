@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/Call-of-War-team-strategy-planner/',
+  base: process.env.NODE_ENV === 'production' ? '/Call-of-War-team-strategy-planner/' : '/',
 })

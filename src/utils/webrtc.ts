@@ -351,6 +351,18 @@ class WebRTCManager {
               messageId: this.generateMessageId()
             });
             
+            // Request initial sync from host
+            setTimeout(() => {
+              console.log('Requesting initial sync from host');
+              this.sendMessage({
+                type: 'sync_request',
+                payload: { strategyId },
+                timestamp: new Date(),
+                author: username,
+                messageId: this.generateMessageId()
+              });
+            }, 100); // Small delay to ensure connection is stable
+            
             resolve(true);
           });
 

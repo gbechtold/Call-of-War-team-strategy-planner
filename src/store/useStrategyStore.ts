@@ -85,11 +85,20 @@ export const useStrategyStore = create<StrategyStore>((set) => ({
     return newTask;
   },
   
-  updateTask: (id, updates) => set((state) => ({
-    tasks: state.tasks.map(t => 
-      t.id === id ? { ...t, ...updates } : t
-    ),
-  })),
+  updateTask: (id, updates) => set((state) => {
+    const taskExists = state.tasks.some(t => t.id === id);
+    if (!taskExists) {
+      console.warn('Store: Trying to update non-existent task:', id);
+    } else {
+      console.log('Store: Updating task:', id, 'with:', updates);
+    }
+    
+    return {
+      tasks: state.tasks.map(t => 
+        t.id === id ? { ...t, ...updates } : t
+      ),
+    };
+  }),
   
   deleteTask: (id) => set((state) => ({
     tasks: state.tasks.filter(t => t.id !== id),

@@ -34,6 +34,7 @@ class WebRTCMeshManager {
   private connections: Map<string, DataConnection> = new Map();
   private roomCode: string | null = null;
   private username: string = 'User';
+  private currentStrategyId: string | null = null;
   private roomPeers: Map<string, PeerInfo> = new Map();
   private messageQueue: CollaborationMessage[] = [];
   private connectionCallbacks: ((connected: boolean) => void)[] = [];
@@ -171,6 +172,9 @@ class WebRTCMeshManager {
 
         this.peer.on('open', async (id) => {
           console.log('Peer opened with ID:', id);
+          this.roomCode = roomCode;
+          this.username = username;
+          this.currentStrategyId = strategyId;
           
           // Add self to room peers
           this.roomPeers.set(id, {
@@ -290,6 +294,18 @@ class WebRTCMeshManager {
           author: this.username,
           messageId: this.generateMessageId()
         });
+        
+        // Request initial sync
+        setTimeout(() => {
+          console.log('Requesting initial sync from peer:', peerId);
+          this.sendMessage({
+            type: 'sync_request',
+            payload: { strategyId: this.currentStrategyId },
+            timestamp: new Date(),
+            author: this.username,
+            messageId: this.generateMessageId()
+          });
+        }, 100); // Small delay to ensure connection is stable
         
         resolve(true);
       });

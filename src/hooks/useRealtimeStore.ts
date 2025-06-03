@@ -25,9 +25,11 @@ export const useRealtimeStore = () => {
 
   // Wrap updateTask to broadcast changes
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
+    console.log('[RealtimeStore] Updating task:', id, updates);
     store.updateTask(id, updates);
     
     if (isConnected) {
+      console.log('[RealtimeStore] Broadcasting task update:', id, updates);
       broadcastTaskUpdate(id, updates);
     }
   }, [store.updateTask, isConnected, broadcastTaskUpdate]);
