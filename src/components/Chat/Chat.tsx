@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useCollaboration } from '../../hooks/useCollaboration';
-import { FaComments, FaPaperPlane, FaTimes, FaUser } from 'react-icons/fa';
+import { useCollaboration } from '../../contexts/CollaborationContext';
+import { FaComments, FaPaperPlane, FaTimes, FaUser, FaPen } from 'react-icons/fa';
 import { format } from 'date-fns';
 
 interface ChatMessage {
@@ -12,11 +12,13 @@ interface ChatMessage {
 }
 
 export const Chat: React.FC = () => {
-  const { isConnected, username, roomCode, connectedPeers } = useCollaboration();
+  const { isConnected, username, roomCode, connectedPeers, setUsername, onMessage, sendMessage } = useCollaboration();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState(username);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +39,7 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     if (isConnected) {
       const systemMessage: ChatMessage = {
-        id: `sys-${Date.now()}`,
+        id: `sys-connected-${Date.now()}-${roomCode}`,
         author: 'System',
         message: `You joined room ${roomCode}`,
         timestamp: new Date(),
@@ -49,49 +51,69 @@ export const Chat: React.FC = () => {
 
   // Listen for chat messages from collaboration
   useEffect(() => {
-    const handleChatMessage = (message: any) => {
-      if (message.type === 'chat_message') {
-        const chatMessage: ChatMessage = {
-          id: message.messageId,
-          author: message.author,
-          message: message.payload.message,
-          timestamp: new Date(message.timestamp),
-          isSystem: false
-        };
-        setMessages(prev => [...prev, chatMessage]);
-        
-        // Increment unread count if minimized
-        if (isMinimized && message.author !== username) {
-          setUnreadCount(prev => prev + 1);
+    if (!isConnected) return;
+    
+    const unsubscribe = onMessage(
+      ['chat_message', 'user_joined', 'user_left', 'username_update'],
+      (message) => {
+        if (message.type === 'chat_message') {
+          // Only add messages from other users (not our own)
+          if (message.author !== username) {
+            const chatMessage: ChatMessage = {
+              id: message.messageId,
+              author: message.author,
+              message: message.payload.message,
+              timestamp: new Date(message.timestamp),
+              isSystem: false
+            };
+            setMessages(prev => {
+              // Prevent duplicates
+              if (prev.some(m => m.id === message.messageId)) {
+                return prev;
+              }
+              return [...prev, chatMessage];
+            });
+            
+            // Increment unread count if minimized
+            if (isMinimized) {
+              setUnreadCount(prev => prev + 1);
+            }
+          }
+        } else if (message.type === 'user_joined') {
+          const systemMessage: ChatMessage = {
+            id: `sys-joined-${Date.now()}-${message.payload.username || 'user'}-${Math.random().toString(36).substring(2, 5)}`,
+            author: 'System',
+            message: `${message.payload.username || 'A user'} joined the room`,
+            timestamp: new Date(message.timestamp),
+            isSystem: true
+          };
+          setMessages(prev => [...prev, systemMessage]);
+        } else if (message.type === 'user_left') {
+          const systemMessage: ChatMessage = {
+            id: `sys-left-${Date.now()}-${message.payload.username || 'user'}-${Math.random().toString(36).substring(2, 5)}`,
+            author: 'System',
+            message: `${message.payload.username || 'A user'} left the room`,
+            timestamp: new Date(message.timestamp),
+            isSystem: true
+          };
+          setMessages(prev => [...prev, systemMessage]);
+        } else if (message.type === 'username_update') {
+          const systemMessage: ChatMessage = {
+            id: `sys-rename-${Date.now()}-${message.author}-${Math.random().toString(36).substring(2, 5)}`,
+            author: 'System',
+            message: `${message.author} changed their name to ${message.payload.username}`,
+            timestamp: new Date(message.timestamp),
+            isSystem: true
+          };
+          setMessages(prev => [...prev, systemMessage]);
         }
-      } else if (message.type === 'user_joined') {
-        const systemMessage: ChatMessage = {
-          id: `sys-${Date.now()}-joined`,
-          author: 'System',
-          message: `${message.payload.username || 'A user'} joined the room`,
-          timestamp: new Date(message.timestamp),
-          isSystem: true
-        };
-        setMessages(prev => [...prev, systemMessage]);
-      } else if (message.type === 'user_left') {
-        const systemMessage: ChatMessage = {
-          id: `sys-${Date.now()}-left`,
-          author: 'System',
-          message: `${message.payload.username || 'A user'} left the room`,
-          timestamp: new Date(message.timestamp),
-          isSystem: true
-        };
-        setMessages(prev => [...prev, systemMessage]);
       }
-    };
+    );
+    
+    return unsubscribe;
+  }, [isConnected, isMinimized, username, onMessage]);
 
-    // Import webrtcManager to listen for messages
-    import('../../utils/webrtc').then(({ webrtcManager }) => {
-      webrtcManager.onMessage(handleChatMessage);
-    });
-  }, [isMinimized, username]);
-
-  const sendMessage = async () => {
+  const handleSendMessage = () => {
     if (!inputMessage.trim() || !isConnected) return;
 
     const chatMessage: ChatMessage = {
@@ -106,13 +128,11 @@ export const Chat: React.FC = () => {
     setMessages(prev => [...prev, chatMessage]);
 
     // Broadcast to peers
-    const { webrtcManager } = await import('../../utils/webrtc');
-    webrtcManager.sendMessage({
+    sendMessage({
       type: 'chat_message',
       payload: { message: inputMessage.trim() },
       timestamp: new Date(),
-      author: username,
-      messageId: chatMessage.id
+      author: username
     });
 
     setInputMessage('');
@@ -121,7 +141,7 @@ export const Chat: React.FC = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSendMessage();
     }
   };
 
@@ -211,6 +231,53 @@ export const Chat: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Username display/edit */}
+          <div className="px-3 py-2 border-t border-cod-accent/30 bg-cod-primary/20">
+            {editingUsername ? (
+              <div className="flex items-center gap-2">
+                <FaUser className="text-cod-accent text-xs" />
+                <input
+                  type="text"
+                  value={tempUsername}
+                  onChange={(e) => setTempUsername(e.target.value)}
+                  onBlur={() => {
+                    if (tempUsername.trim() && tempUsername !== username) {
+                      setUsername(tempUsername.trim());
+                    }
+                    setEditingUsername(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (tempUsername.trim() && tempUsername !== username) {
+                        setUsername(tempUsername.trim());
+                      }
+                      setEditingUsername(false);
+                    } else if (e.key === 'Escape') {
+                      setTempUsername(username);
+                      setEditingUsername(false);
+                    }
+                  }}
+                  className="flex-1 bg-cod-secondary border border-cod-accent/30 rounded px-2 py-1 text-gray-300 text-sm"
+                  autoFocus
+                  maxLength={20}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setTempUsername(username);
+                  setEditingUsername(true);
+                }}
+                className="flex items-center gap-2 text-sm text-gray-300 hover:text-cod-accent transition-colors w-full text-left"
+                title="Click to edit username"
+              >
+                <FaUser className="text-cod-accent text-xs" />
+                <span>{username}</span>
+                <FaPen className="text-[10px] opacity-30 hover:opacity-100 transition-opacity ml-auto" />
+              </button>
+            )}
+          </div>
+
           {/* Input */}
           <div className="p-3 border-t border-cod-accent/30">
             <div className="flex gap-2">
@@ -223,7 +290,7 @@ export const Chat: React.FC = () => {
                 className="flex-1 px-3 py-2 bg-cod-primary/50 border border-cod-accent/30 rounded text-gray-100 text-sm placeholder-gray-500 focus:border-cod-accent/50 focus:outline-none"
               />
               <button
-                onClick={sendMessage}
+                onClick={handleSendMessage}
                 disabled={!inputMessage.trim()}
                 className="px-3 py-2 bg-cod-accent text-cod-primary rounded hover:bg-cod-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

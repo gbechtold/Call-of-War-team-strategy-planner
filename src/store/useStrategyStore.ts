@@ -14,7 +14,7 @@ interface StrategyStore {
   setCurrentStrategy: (id: string) => void;
   
   // Task actions
-  createTask: (task: Omit<Task, 'id'>) => void;
+  createTask: (task: Omit<Task, 'id'> | Task) => Task;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   
@@ -63,13 +63,27 @@ export const useStrategyStore = create<StrategyStore>((set) => ({
   
   setCurrentStrategy: (id) => set({ currentStrategyId: id }),
   
-  createTask: (task) => set((state) => {
+  createTask: (task) => {
     const newTask: Task = {
       ...task,
-      id: generateId(),
+      id: 'id' in task && task.id ? task.id : generateId(),
     };
-    return { tasks: [...state.tasks, newTask] };
-  }),
+    console.log('Store: Creating task with ID:', newTask.id, 'Task:', newTask);
+    
+    // Check if task already exists
+    let existingTask: Task | undefined;
+    set((state) => {
+      existingTask = state.tasks.find(t => t.id === newTask.id);
+      return state; // No state change yet
+    });
+    if (existingTask) {
+      console.log('Store: Task already exists, skipping creation:', newTask.id);
+      return existingTask;
+    }
+    
+    set((state) => ({ tasks: [...state.tasks, newTask] }));
+    return newTask;
+  },
   
   updateTask: (id, updates) => set((state) => ({
     tasks: state.tasks.map(t => 

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useCurrentStrategy } from '../../hooks/useCurrentStrategy';
 import { useStrategyStore } from '../../store/useStrategyStore';
-import { useCollaboration } from '../../hooks/useCollaboration';
+import { useCollaboration } from '../../contexts/CollaborationContext';
 import { FaShare, FaCopy, FaCheck, FaQrcode, FaEnvelope, FaDiscord, FaTelegram, FaWhatsapp, FaDownload, FaUpload, FaUsers, FaTimes, FaExternalLinkAlt, FaPlay, FaStop, FaLink } from 'react-icons/fa';
 import { encodeStrategy, decodeStrategy } from '../../utils/shareCode';
 
@@ -14,7 +14,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
   const { strategy } = useCurrentStrategy();
   const { tasks, players, createStrategy, createTask, addPlayer } = useStrategyStore();
   const collaboration = useCollaboration();
-  const [activeTab, setActiveTab] = useState<'share' | 'collaborate' | 'export' | 'import'>('share');
+  const [activeTab, setActiveTab] = useState<'share' | 'collaborate' | 'export' | 'import'>('collaborate');
   const [shareMethod, setShareMethod] = useState<'link' | 'code' | 'qr'>('link');
   const [shareUrl, setShareUrl] = useState<string>('');
   const [shareCode, setShareCode] = useState<string>('');
@@ -219,16 +219,6 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
             <div className="w-48 bg-cod-secondary/50 border-r border-cod-accent/20 p-4">
               <nav className="space-y-2">
                 <button
-                  onClick={() => setActiveTab('share')}
-                  className={`w-full text-left px-3 py-2 rounded font-bebas transition-colors ${
-                    activeTab === 'share'
-                      ? 'bg-cod-accent text-cod-primary'
-                      : 'text-cod-accent hover:bg-cod-accent/20'
-                  }`}
-                >
-                  🔗 Share Links
-                </button>
-                <button
                   onClick={() => setActiveTab('collaborate')}
                   className={`w-full text-left px-3 py-2 rounded font-bebas transition-colors ${
                     activeTab === 'collaborate'
@@ -237,6 +227,16 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                   }`}
                 >
                   <FaUsers /> Collaborate
+                </button>
+                <button
+                  onClick={() => setActiveTab('share')}
+                  className={`w-full text-left px-3 py-2 rounded font-bebas transition-colors ${
+                    activeTab === 'share'
+                      ? 'bg-cod-accent text-cod-primary'
+                      : 'text-cod-accent hover:bg-cod-accent/20'
+                  }`}
+                >
+                  🔗 Share Links
                 </button>
                 <button
                   onClick={() => setActiveTab('export')}
@@ -468,7 +468,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => 
                   <div className="text-left">
                     <h3 className="text-xl font-bebas text-cod-accent mb-2">Real-time Collaboration</h3>
                     <p className="text-gray-400 text-sm mb-4">
-                      Create or join a collaboration room for real-time strategy editing with automatic conflict resolution
+                      Work together in real-time with automatic conflict resolution
                     </p>
                   </div>
 

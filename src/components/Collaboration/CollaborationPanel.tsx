@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useCollaboration } from '../../hooks/useCollaboration';
+import { useCollaboration } from '../../contexts/CollaborationContext';
 import { ConflictNotifications, ConflictDashboard } from '../ConflictResolution';
-import { FaUsers, FaCopy, FaSignOutAlt, FaUserPlus, FaExclamationTriangle, FaSpinner, FaCheck, FaClock, FaChartBar } from 'react-icons/fa';
+import { FaUsers, FaCopy, FaSignOutAlt, FaUserPlus, FaExclamationTriangle, FaSpinner, FaCheck, FaClock, FaChartBar, FaPen } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
 export const CollaborationPanel: React.FC = () => {
@@ -22,6 +22,7 @@ export const CollaborationPanel: React.FC = () => {
     getRoomLink,
     conflictResolution,
     recentUpdates,
+    peerUsernames,
   } = useCollaboration();
 
   const [showJoinForm, setShowJoinForm] = useState(false);
@@ -29,6 +30,8 @@ export const CollaborationPanel: React.FC = () => {
   const [localUsername, setLocalUsername] = useState(username);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showConflictDashboard, setShowConflictDashboard] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState(username);
 
   const handleCreateRoom = async () => {
     const roomCode = await createRoom(localUsername);
@@ -194,27 +197,40 @@ export const CollaborationPanel: React.FC = () => {
               <span className="text-sm text-gray-300">
                 {isHost ? 'Hosting room' : 'Joined room'}
               </span>
-              <span className="text-cod-accent font-mono font-bold text-lg">
-                {roomCode}
-              </span>
-            </div>
-            
-            {isHost && (
               <button
                 onClick={handleCopyLink}
-                className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent text-cod-accent rounded text-sm font-bebas hover:bg-cod-accent hover:text-cod-primary transition-colors flex items-center justify-center gap-2"
+                className="text-cod-accent font-mono font-bold text-lg hover:bg-cod-accent/20 px-2 py-1 rounded transition-colors"
+                title="Click to copy room link"
               >
-                {linkCopied ? (
-                  <>
-                    <FaCheck /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <FaCopy /> Copy Link
-                  </>
-                )}
+                #{roomCode}
               </button>
-            )}
+            </div>
+            
+            <div className="text-xs text-gray-400 mb-2">
+              Share this room ID or{' '}
+              <button
+                onClick={handleCopyLink}
+                className="text-cod-accent hover:text-cod-accent/80 underline"
+              >
+                copy the link
+              </button>
+              {' '}to invite others
+            </div>
+            
+            <button
+              onClick={handleCopyLink}
+              className="w-full px-3 py-2 bg-cod-secondary border border-cod-accent text-cod-accent rounded text-sm font-bebas hover:bg-cod-accent hover:text-cod-primary transition-colors flex items-center justify-center gap-2"
+            >
+              {linkCopied ? (
+                <>
+                  <FaCheck /> Link Copied!
+                </>
+              ) : (
+                <>
+                  <FaCopy /> Copy Room Link
+                </>
+              )}
+            </button>
           </div>
 
           {/* Connected Users */}
@@ -223,13 +239,51 @@ export const CollaborationPanel: React.FC = () => {
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-gray-300">{username} (you)</span>
+                {editingUsername ? (
+                  <input
+                    type="text"
+                    value={tempUsername}
+                    onChange={(e) => setTempUsername(e.target.value)}
+                    onBlur={() => {
+                      if (tempUsername.trim() && tempUsername !== username) {
+                        setUsername(tempUsername.trim());
+                      }
+                      setEditingUsername(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (tempUsername.trim() && tempUsername !== username) {
+                          setUsername(tempUsername.trim());
+                        }
+                        setEditingUsername(false);
+                      } else if (e.key === 'Escape') {
+                        setTempUsername(username);
+                        setEditingUsername(false);
+                      }
+                    }}
+                    className="bg-cod-secondary border border-cod-accent/30 rounded px-1 text-gray-300"
+                    autoFocus
+                    maxLength={20}
+                  />
+                ) : (
+                  <button
+                    onClick={() => {
+                      setTempUsername(username);
+                      setEditingUsername(true);
+                    }}
+                    className="flex items-center gap-1 text-gray-300 hover:text-cod-accent transition-colors"
+                    title="Click to edit username"
+                  >
+                    {username} (you)
+                    <FaPen className="text-[10px] opacity-30 hover:opacity-100 transition-opacity" />
+                  </button>
+                )}
                 {isHost && <span className="text-cod-accent text-[10px]">HOST</span>}
               </div>
-              {Array.from({ length: connectedPeers }, (_, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
+              {Array.from(peerUsernames.entries()).map(([peerId, peerUsername]) => (
+                <div key={peerId} className="flex items-center gap-2 text-xs">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-300">User {i + 1}</span>
+                  <span className="text-gray-300">{peerUsername}</span>
                 </div>
               ))}
             </div>

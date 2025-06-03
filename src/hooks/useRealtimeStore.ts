@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useStrategyStore } from '../store/useStrategyStore';
-import { useCollaboration } from './useCollaboration';
+import { useCollaboration } from '../contexts/CollaborationContext';
 import { type Task, type Player, type Strategy } from '../types';
 
 /**
@@ -13,15 +13,14 @@ export const useRealtimeStore = () => {
 
   // Wrap createTask to broadcast changes
   const createTask = useCallback((task: Omit<Task, 'id'>) => {
-    store.createTask(task);
-    
-    // Get the created task (it will be the last one)
-    const tasks = useStrategyStore.getState().tasks;
-    const createdTask = tasks[tasks.length - 1];
+    // Create the task and get the created task with ID
+    const createdTask = store.createTask(task);
     
     if (isConnected && createdTask) {
       broadcastTaskCreate(createdTask);
     }
+    
+    return createdTask;
   }, [store.createTask, isConnected, broadcastTaskCreate]);
 
   // Wrap updateTask to broadcast changes

@@ -21,9 +21,10 @@ import { useIsMobile } from './hooks/useSwipeGestures';
 import { useStrategyStore } from './store/useStrategyStore';
 import { useCurrentStrategy } from './hooks/useCurrentStrategy';
 import { useRealtimeStore } from './hooks/useRealtimeStore';
+import { useCollaboration } from './contexts/CollaborationContext';
 import { type Task, type Unit, TaskType, TaskStatus } from './types';
 import { addDays, addHours } from 'date-fns';
-import { FaPlus, FaBars, FaPen, FaStickyNote, FaRocket, FaFlag, FaTimes, FaKeyboard } from 'react-icons/fa';
+import { FaPlus, FaBars, FaPen, FaStickyNote, FaRocket, FaFlag, FaTimes, FaKeyboard, FaShare, FaCopy, FaCheck } from 'react-icons/fa';
 import { getUnitBuildDuration } from './data/units';
 import './App.css';
 
@@ -31,6 +32,7 @@ function App() {
   const { createStrategy } = useStrategyStore();
   const { createTask, updateTask, updateStrategy, deleteTask } = useRealtimeStore();
   const { strategy, tasks } = useCurrentStrategy();
+  const { getRoomLink, isConnected, roomCode, createRoom: createCollaborationRoom, isJoining } = useCollaboration();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   const [showUnitMenu, setShowUnitMenu] = useState(true);
@@ -45,6 +47,10 @@ function App() {
   const [strategyName, setStrategyName] = useState('');
   const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  
+  // Update share link when room changes
+  const shareLink = isConnected ? getRoomLink() || '' : '';
   
   // Mobile panel management
   const isMobile = useIsMobile();
@@ -492,17 +498,84 @@ function App() {
                   autoFocus
                 />
               ) : (
-                <p
-                  className="text-gray-300 text-sm cursor-pointer hover:text-cod-accent transition-colors flex items-center gap-1"
-                  onClick={() => {
-                    setStrategyName(strategy.name);
-                    setEditingStrategyName(true);
-                  }}
-                  title="Click to edit strategy name"
-                >
-                  {strategy.name}
-                  <FaPen className="text-xs opacity-30 hover:opacity-100 transition-opacity" />
-                </p>
+                <div className="flex items-center gap-3">
+                  <p
+                    className="text-gray-300 text-sm cursor-pointer hover:text-cod-accent transition-colors flex items-center gap-1"
+                    onClick={() => {
+                      setStrategyName(strategy.name);
+                      setEditingStrategyName(true);
+                    }}
+                    title="Click to edit strategy name"
+                  >
+                    {strategy.name}
+                    <FaPen className="text-xs opacity-30 hover:opacity-100 transition-opacity" />
+                  </p>
+                  
+                  {/* Quick Share Link */}
+                  <div className="flex items-center gap-2">
+                    {isConnected ? (
+                      <>
+                        <input
+                          type="text"
+                          value={`Room: #${roomCode}`}
+                          className="w-32 px-2 py-1 bg-cod-secondary border border-cod-accent/30 rounded text-xs text-gray-300"
+                          readOnly
+                        />
+                        <button
+                          onClick={async () => {
+                            if (shareLink) {
+                              try {
+                                await navigator.clipboard.writeText(shareLink);
+                                setLinkCopied(true);
+                                setTimeout(() => setLinkCopied(false), 2000);
+                              } catch (error) {
+                                console.error('Failed to copy:', error);
+                              }
+                            }
+                          }}
+                          className="px-2 py-1 bg-cod-accent text-cod-primary rounded text-xs font-bebas hover:bg-cod-accent/90 transition-colors flex items-center gap-1"
+                          title="Copy room link"
+                        >
+                          {linkCopied ? (
+                            <><FaCheck /> Copied!</>
+                          ) : (
+                            <><FaCopy /> Copy</>
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={async () => {
+                            console.log('[App] Attempting to create room...');
+                            const roomCode = await createCollaborationRoom('Host');
+                            if (roomCode) {
+                              console.log('[App] Room created successfully:', roomCode);
+                            } else {
+                              console.log('[App] Room creation failed');
+                            }
+                          }}
+                          disabled={isJoining}
+                          className="px-3 py-1 bg-cod-accent text-cod-primary rounded text-xs font-bebas hover:bg-cod-accent/90 transition-colors flex items-center gap-1 disabled:opacity-50"
+                          title="Create new collaboration room"
+                        >
+                          {isJoining ? (
+                            <>Creating...</>
+                          ) : (
+                            <><FaShare /> Create Room</>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setShowShareDialog(true)}
+                          className="px-2 py-1 bg-cod-secondary border border-cod-accent text-cod-accent rounded text-xs font-bebas hover:bg-cod-accent hover:text-cod-primary transition-colors"
+                          title="Open share dialog for manual room creation"
+                        >
+                          Manual
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
